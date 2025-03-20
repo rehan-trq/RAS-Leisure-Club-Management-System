@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -6,7 +5,7 @@ import Footer from '@/components/layout/Footer';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Dumbbell, Calendar, Award, Users, Coffee, MapPin } from 'lucide-react';
+import { ArrowRight, Dumbbell, Calendar, Award, Users, Coffee, MapPin, Phone, Mail } from 'lucide-react';
 
 const Index = () => {
   useEffect(() => {

@@ -73,17 +73,19 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       onClick={createRipple}
       {...props}
     >
-      <style jsx>{`
-        @keyframes ripple {
-          to {
-            transform: scale(4);
-            opacity: 0;
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes ripple {
+            to {
+              transform: scale(4);
+              opacity: 0;
+            }
           }
-        }
-        .animate-ripple {
-          animation: ripple 0.6s linear;
-        }
-      `}</style>
+          .animate-ripple {
+            animation: ripple 0.6s linear;
+          }
+        `
+      }} />
       <span className="relative z-10">{children}</span>
       {showArrow && (
         <span className="absolute right-4 top-1/2 transform -translate-y-1/2 transition-transform group-hover:translate-x-1">
