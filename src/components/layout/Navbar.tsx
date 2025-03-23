@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Calendar, ClipboardList, LayoutDashboard } from 'lucide-react';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -27,6 +27,10 @@ const Navbar = () => {
     setIsMenuOpen(false);
   }, [location]);
 
+  // Mock authentication status (in a real app, this would come from an auth context)
+  const isAuthenticated = true; // This is just for demonstration
+  const isAdmin = true; // This is just for demonstration
+
   return (
     <header
       className={cn(
@@ -49,11 +53,26 @@ const Navbar = () => {
           <Link to="/services" className="nav-link">
             Services
           </Link>
+          {isAuthenticated && (
+            <>
+              <Link to="/book-activity" className="nav-link flex items-center gap-1">
+                <Calendar size={16} />
+                Book Activity
+              </Link>
+              <Link to="/my-bookings" className="nav-link flex items-center gap-1">
+                <ClipboardList size={16} />
+                My Bookings
+              </Link>
+            </>
+          )}
+          {isAdmin && isAuthenticated && (
+            <Link to="/admin/bookings" className="nav-link flex items-center gap-1">
+              <LayoutDashboard size={16} />
+              Admin
+            </Link>
+          )}
           <Link to="/#about" className="nav-link">
             About
-          </Link>
-          <Link to="/#testimonials" className="nav-link">
-            Testimonials
           </Link>
           <Link to="/#contact" className="nav-link">
             Contact
@@ -61,16 +80,24 @@ const Navbar = () => {
         </nav>
 
         <div className="hidden md:flex items-center space-x-4">
-          <Link to="/login">
-            <Button variant="ghost" className="rounded-xl px-5 transition-all hover:bg-primary/10">
-              Login
+          {!isAuthenticated ? (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" className="rounded-xl px-5 transition-all hover:bg-primary/10">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button className="rounded-xl px-5 shadow-md hover:-translate-y-0.5 transition-all">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <Button variant="outline" className="rounded-xl px-5">
+              Logout
             </Button>
-          </Link>
-          <Link to="/signup">
-            <Button className="rounded-xl px-5 shadow-md hover:-translate-y-0.5 transition-all">
-              Sign Up
-            </Button>
-          </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -97,22 +124,43 @@ const Navbar = () => {
             <Link to="/services" className="nav-link py-2 block">
               Services
             </Link>
+            {isAuthenticated && (
+              <>
+                <Link to="/book-activity" className="nav-link py-2 flex items-center gap-2">
+                  <Calendar size={16} />
+                  Book Activity
+                </Link>
+                <Link to="/my-bookings" className="nav-link py-2 flex items-center gap-2">
+                  <ClipboardList size={16} />
+                  My Bookings
+                </Link>
+              </>
+            )}
+            {isAdmin && isAuthenticated && (
+              <Link to="/admin/bookings" className="nav-link py-2 flex items-center gap-2">
+                <LayoutDashboard size={16} />
+                Admin
+              </Link>
+            )}
             <Link to="/#about" className="nav-link py-2 block">
               About
-            </Link>
-            <Link to="/#testimonials" className="nav-link py-2 block">
-              Testimonials
             </Link>
             <Link to="/#contact" className="nav-link py-2 block">
               Contact
             </Link>
             <div className="flex flex-col space-y-3 pt-3">
-              <Link to="/login" className="w-full">
-                <Button variant="outline" className="w-full rounded-xl">Login</Button>
-              </Link>
-              <Link to="/signup" className="w-full">
-                <Button className="w-full rounded-xl">Sign Up</Button>
-              </Link>
+              {!isAuthenticated ? (
+                <>
+                  <Link to="/login" className="w-full">
+                    <Button variant="outline" className="w-full rounded-xl">Login</Button>
+                  </Link>
+                  <Link to="/signup" className="w-full">
+                    <Button className="w-full rounded-xl">Sign Up</Button>
+                  </Link>
+                </>
+              ) : (
+                <Button variant="outline" className="w-full rounded-xl">Logout</Button>
+              )}
             </div>
           </div>
         </div>

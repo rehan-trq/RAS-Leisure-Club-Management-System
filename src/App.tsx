@@ -9,6 +9,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Services from "./pages/Services";
 import NotFound from "./pages/NotFound";
+import BookActivity from "./pages/BookActivity";
+import MyBookings from "./pages/MyBookings";
+import AdminBookings from "./pages/AdminBookings";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/book-activity" element={<BookActivity />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/admin/bookings" element={<AdminBookings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
