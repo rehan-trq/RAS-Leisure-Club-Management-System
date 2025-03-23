@@ -12,6 +12,7 @@ import BookingConfirmation from '@/components/booking/BookingConfirmation';
 import { useBooking } from '@/contexts/BookingContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const BookActivity = () => {
   const [selectedService, setSelectedService] = useState(servicesData[0]);
