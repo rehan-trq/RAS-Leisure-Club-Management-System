@@ -46,7 +46,7 @@ const Navbar = () => {
           <Link to="/" className="nav-link">
             Home
           </Link>
-          <Link to="/#services" className="nav-link">
+          <Link to="/services" className="nav-link">
             Services
           </Link>
           <Link to="/#about" className="nav-link">
@@ -94,7 +94,7 @@ const Navbar = () => {
             <Link to="/" className="nav-link py-2 block">
               Home
             </Link>
-            <Link to="/#services" className="nav-link py-2 block">
+            <Link to="/services" className="nav-link py-2 block">
               Services
             </Link>
             <Link to="/#about" className="nav-link py-2 block">
