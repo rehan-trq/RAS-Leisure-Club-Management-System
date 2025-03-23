@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -16,6 +15,8 @@ export interface Booking {
 
 interface BookingContextType {
   bookings: Booking[];
+  selectedService: any;
+  setSelectedService: (service: any) => void;
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => void;
   cancelBooking: (id: string) => void;
   rescheduleBooking: (id: string, newDate: string, newTime: string) => void;
@@ -72,6 +73,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const savedBookings = localStorage.getItem('bookings');
     return savedBookings ? JSON.parse(savedBookings) : generateMockBookings();
   });
+  
+  const [selectedService, setSelectedService] = useState<any>(null);
 
   useEffect(() => {
     localStorage.setItem('bookings', JSON.stringify(bookings));
@@ -138,6 +141,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <BookingContext.Provider 
       value={{ 
         bookings, 
+        selectedService,
+        setSelectedService,
         addBooking, 
         cancelBooking, 
         rescheduleBooking, 
