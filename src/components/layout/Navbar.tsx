@@ -3,12 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Calendar, ClipboardList, LayoutDashboard, Info, Mail } from 'lucide-react';
+import { Menu, X, Calendar, ClipboardList, LayoutDashboard, Info, Mail, UserCircle, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, isAdmin, isStaff, isMember, user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,9 +29,13 @@ const Navbar = () => {
     setIsMenuOpen(false);
   }, [location]);
 
-  // Mock authentication status (in a real app, this would come from an auth context)
-  const isAuthenticated = true; // This is just for demonstration
-  const isAdmin = true; // This is just for demonstration
+  // Get the appropriate dashboard link based on user role
+  const getDashboardLink = () => {
+    if (isAdmin) return '/admin';
+    if (isStaff) return '/staff';
+    if (isMember) return '/member';
+    return '/';
+  };
 
   return (
     <header
@@ -65,10 +71,16 @@ const Navbar = () => {
               </Link>
             </>
           )}
-          {isAdmin && isAuthenticated && (
+          {isAdmin && (
             <Link to="/admin/bookings" className="nav-link flex items-center gap-1">
               <LayoutDashboard size={16} />
               Admin
+            </Link>
+          )}
+          {isStaff && !isAdmin && (
+            <Link to="/staff" className="nav-link flex items-center gap-1">
+              <LayoutDashboard size={16} />
+              Staff Portal
             </Link>
           )}
           <Link to="/about" className="nav-link flex items-center gap-1">
@@ -96,9 +108,22 @@ const Navbar = () => {
               </Link>
             </>
           ) : (
-            <Button variant="outline" className="rounded-xl px-5">
-              Logout
-            </Button>
+            <>
+              <Link to={getDashboardLink()}>
+                <Button variant="ghost" className="rounded-xl px-5 flex items-center gap-2">
+                  <UserCircle size={16} />
+                  <span>{user?.name}</span>
+                </Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                className="rounded-xl px-5 flex items-center gap-2"
+                onClick={logout}
+              >
+                <LogOut size={16} />
+                Logout
+              </Button>
+            </>
           )}
         </div>
 
@@ -136,12 +161,22 @@ const Navbar = () => {
                   <ClipboardList size={16} />
                   My Bookings
                 </Link>
+                <Link to={getDashboardLink()} className="nav-link py-2 flex items-center gap-2">
+                  <UserCircle size={16} />
+                  My Dashboard
+                </Link>
               </>
             )}
-            {isAdmin && isAuthenticated && (
+            {isAdmin && (
               <Link to="/admin/bookings" className="nav-link py-2 flex items-center gap-2">
                 <LayoutDashboard size={16} />
                 Admin
+              </Link>
+            )}
+            {isStaff && !isAdmin && (
+              <Link to="/staff" className="nav-link py-2 flex items-center gap-2">
+                <LayoutDashboard size={16} />
+                Staff Portal
               </Link>
             )}
             <Link to="/about" className="nav-link py-2 flex items-center gap-2">
@@ -163,7 +198,14 @@ const Navbar = () => {
                   </Link>
                 </>
               ) : (
-                <Button variant="outline" className="w-full rounded-xl">Logout</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full rounded-xl flex items-center justify-center gap-2"
+                  onClick={logout}
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
               )}
             </div>
           </div>

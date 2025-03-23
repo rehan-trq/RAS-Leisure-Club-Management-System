@@ -9,14 +9,18 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('member');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -39,20 +43,19 @@ const Login = () => {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setLoading(true);
       
-      // Simulate API request
-      setTimeout(() => {
+      try {
+        await login(email, password, role);
+        // Note: No need to manually redirect here as the auth context handles it
+      } catch (error) {
+        // Error handling is done in the auth context
         setLoading(false);
-        
-        // For demo purposes, we'll just show a success toast and redirect
-        toast.success('Successfully logged in!');
-        navigate('/');
-      }, 1500);
+      }
     }
   };
 
@@ -66,6 +69,13 @@ const Login = () => {
       navigate('/');
     }, 1500);
   };
+
+  // Sample account information for demo purposes
+  const sampleAccounts = [
+    { role: 'member', email: 'member@example.com', password: 'password123' },
+    { role: 'staff', email: 'staff@example.com', password: 'password123' },
+    { role: 'admin', email: 'admin@example.com', password: 'password123' },
+  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary p-4 relative">
@@ -140,6 +150,28 @@ const Login = () => {
                     <div className="text-sm text-destructive mt-1">{errors.password}</div>
                   )}
                 </div>
+
+                <div className="form-control">
+                  <Label className="form-label">Login As</Label>
+                  <RadioGroup 
+                    value={role} 
+                    onValueChange={(value) => setRole(value as UserRole)}
+                    className="flex space-x-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="member" id="member" />
+                      <Label htmlFor="member" className="cursor-pointer">Member</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="staff" id="staff" />
+                      <Label htmlFor="staff" className="cursor-pointer">Staff</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="admin" id="admin" />
+                      <Label htmlFor="admin" className="cursor-pointer">Admin</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
               
               <AnimatedButton
@@ -178,6 +210,22 @@ const Login = () => {
                   </svg>
                   <span className="ml-2">Sign in with Google</span>
                 </Button>
+              </div>
+            </div>
+
+            {/* Sample accounts for demo purposes */}
+            <div className="mt-8 p-4 bg-secondary/50 rounded-md">
+              <p className="text-sm font-medium mb-2">Demo Accounts:</p>
+              <div className="space-y-2 text-xs">
+                {sampleAccounts.map((account) => (
+                  <div key={account.role} className="flex flex-col">
+                    <span className="font-semibold capitalize">{account.role}:</span>
+                    <div className="flex justify-between">
+                      <span>{account.email}</span>
+                      <span>{account.password}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
