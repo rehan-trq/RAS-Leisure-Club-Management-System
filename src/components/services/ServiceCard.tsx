@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { Clock, Users, Calendar, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface ServiceCardProps {
   service: {
@@ -83,13 +84,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
       </CardContent>
       
       <CardFooter className="pt-0 pb-6">
-        <AnimatedButton 
-          variant="outline" 
-          className="w-full mt-2" 
-          showArrow
-        >
-          Learn More
-        </AnimatedButton>
+        <Link to={`/services/${service.id}`} className="w-full">
+          <AnimatedButton 
+            variant="outline" 
+            className="w-full mt-2" 
+            showArrow
+          >
+            Learn More
+          </AnimatedButton>
+        </Link>
       </CardFooter>
     </Card>
   );

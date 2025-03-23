@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Calendar, ClipboardList, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Calendar, ClipboardList, LayoutDashboard, Info, Mail } from 'lucide-react';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -71,10 +71,12 @@ const Navbar = () => {
               Admin
             </Link>
           )}
-          <Link to="/#about" className="nav-link">
+          <Link to="/about" className="nav-link flex items-center gap-1">
+            <Info size={16} />
             About
           </Link>
-          <Link to="/#contact" className="nav-link">
+          <Link to="/contact" className="nav-link flex items-center gap-1">
+            <Mail size={16} />
             Contact
           </Link>
         </nav>
@@ -142,10 +144,12 @@ const Navbar = () => {
                 Admin
               </Link>
             )}
-            <Link to="/#about" className="nav-link py-2 block">
+            <Link to="/about" className="nav-link py-2 flex items-center gap-2">
+              <Info size={16} />
               About
             </Link>
-            <Link to="/#contact" className="nav-link py-2 block">
+            <Link to="/contact" className="nav-link py-2 flex items-center gap-2">
+              <Mail size={16} />
               Contact
             </Link>
             <div className="flex flex-col space-y-3 pt-3">
