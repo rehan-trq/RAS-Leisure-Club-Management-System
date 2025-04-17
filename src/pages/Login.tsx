@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
-import { UserRole, useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
 import SocialLogin from '@/components/auth/SocialLogin';
 import DemoAccounts from '@/components/auth/DemoAccounts';
@@ -14,11 +14,11 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = async (email: string, password: string, role: UserRole) => {
+  const handleSubmit = async (email: string, password: string) => {
     setLoading(true);
     
     try {
-      await login(email, password, role);
+      await login(email, password);
       // Note: No need to manually redirect here as the auth context handles it
     } catch (error) {
       // Error handling is done in the auth context

@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
-import { UserRole } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => void;
