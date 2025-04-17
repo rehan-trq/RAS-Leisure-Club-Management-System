@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import { supabase } from '@/integrations/supabase/client';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -82,32 +82,61 @@ const Signup = () => {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setLoading(true);
       
-      // Simulate API request
-      setTimeout(() => {
-        setLoading(false);
-        
-        // For demo purposes, we'll just show a success toast and redirect
-        toast.success('Account created successfully!');
+      try {
+        // Register user with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            }
+          }
+        });
+
+        if (error) {
+          toast.error(error.message);
+          setLoading(false);
+          return;
+        }
+
+        toast.success('Account created successfully! You can now log in.');
+        console.log('Signup successful:', data);
         navigate('/login');
-      }, 1500);
+      } catch (error: any) {
+        console.error('Signup error:', error);
+        toast.error(error.message || 'Failed to create account');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
     setLoading(true);
     
-    // Simulate Google API request
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Account created with Google!');
+      }
+    } catch (error: any) {
+      console.error('Google signup error:', error);
+      toast.error(error.message || 'Failed to sign up with Google');
+    } finally {
       setLoading(false);
-      toast.success('Account created with Google!');
-      navigate('/login');
-    }, 1500);
+    }
   };
 
   return (
