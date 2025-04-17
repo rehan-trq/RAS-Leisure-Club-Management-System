@@ -2,11 +2,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { createClient } from '@supabase/supabase-js';
 
-// Define user roles
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
 export type UserRole = 'member' | 'staff' | 'admin';
 
-// User interface
 export interface User {
   id: string;
   email: string;
@@ -14,7 +19,6 @@ export interface User {
   role: UserRole;
 }
 
-// Auth context type
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -26,95 +30,118 @@ interface AuthContextType {
   hasPermission: (requiredRoles: UserRole[]) => boolean;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration
-const mockUsers = [
-  {
-    id: 'user1',
-    email: 'member@example.com',
-    name: 'John Member',
-    password: 'password123',
-    role: 'member' as UserRole
-  },
-  {
-    id: 'user2',
-    email: 'staff@example.com',
-    name: 'Jane Staff',
-    password: 'password123',
-    role: 'staff' as UserRole
-  },
-  {
-    id: 'user3',
-    email: 'admin@example.com',
-    name: 'Alex Admin',
-    password: 'password123',
-    role: 'admin' as UserRole
-  }
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  // Update localStorage when user changes
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
+    // Check active session on load
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', session.user.id)
+          .single();
 
-  // Computed properties for role checks
-  const isAuthenticated = !!user;
-  const isAdmin = !!user && user.role === 'admin';
-  const isStaff = !!user && user.role === 'staff';
-  const isMember = !!user && user.role === 'member';
-
-  // Login function
-  const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    // In a real app, this would be an API call to your backend
-    const foundUser = mockUsers.find(u => 
-      u.email.toLowerCase() === email.toLowerCase() && 
-      u.password === password &&
-      u.role === role
-    );
-
-    if (foundUser) {
-      // Remove password from user object before storing
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword as User);
-      
-      // Redirect based on role
-      switch (role) {
-        case 'member':
-          navigate('/member');
-          break;
-        case 'staff':
-          navigate('/staff');
-          break;
-        case 'admin':
-          navigate('/admin');
-          break;
-        default:
-          navigate('/');
+        if (profile) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: profile.name,
+            role: profile.role
+          });
+        }
       }
-      
-      toast.success(`Welcome back, ${foundUser.name}!`);
-    } else {
-      toast.error('Invalid credentials. Please try again.');
-      throw new Error('Invalid credentials');
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: profile.name,
+            role: profile.role
+          });
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email: string, password: string, role: UserRole) => {
+    try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      if (authUser) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        if (profile?.role !== role) {
+          await supabase.auth.signOut();
+          throw new Error('Invalid role for this user');
+        }
+
+        setUser({
+          id: authUser.id,
+          email: authUser.email!,
+          name: profile.name,
+          role: profile.role
+        });
+
+        // Redirect based on role
+        switch (role) {
+          case 'member':
+            navigate('/member');
+            break;
+          case 'staff':
+            navigate('/staff');
+            break;
+          case 'admin':
+            navigate('/admin');
+            break;
+          default:
+            navigate('/');
+        }
+        
+        toast.success(`Welcome back, ${profile.name}!`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed. Please try again.');
+      throw error;
     }
   };
 
-  // Logout function
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     navigate('/login');
     toast.info('You have been logged out.');
@@ -125,6 +152,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return false;
     return requiredRoles.includes(user.role);
   };
+
+  const isAuthenticated = !!user;
+  const isAdmin = !!user && user.role === 'admin';
+  const isStaff = !!user && user.role === 'staff';
+  const isMember = !!user && user.role === 'member';
 
   return (
     <AuthContext.Provider 
