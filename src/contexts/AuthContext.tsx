@@ -2,26 +2,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { createClient } from '@supabase/supabase-js';
-
-// Get environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Create a function to check if Supabase config is valid
-const isSupabaseConfigured = () => {
-  return !!supabaseUrl && !!supabaseAnonKey;
-};
-
-// Initialize Supabase client only if we have valid configuration
-// This prevents the "supabaseUrl is required" error
-const supabase = isSupabaseConfigured() 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 export type UserRole = 'member' | 'staff' | 'admin';
 
-export interface User {
+export interface AuthUser {
   id: string;
   email: string;
   name: string;
@@ -29,12 +15,12 @@ export interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
   isMember: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
 }
@@ -42,16 +28,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Skip authentication initialization if Supabase is not configured
-    if (!isSupabaseConfigured() || !supabase) {
-      console.warn('Supabase is not properly configured. Authentication features will be unavailable.');
-      return;
-    }
-
     // Check active session on load
     const initializeAuth = async () => {
       try {
@@ -59,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name, role')
+            .select('role, full_name')
             .eq('id', session.user.id)
             .single();
 
@@ -67,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser({
               id: session.user.id,
               email: session.user.email!,
-              name: profile.name,
+              name: profile.full_name || '',
               role: profile.role
             });
           }
@@ -85,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name, role')
+            .select('role, full_name')
             .eq('id', session.user.id)
             .single();
 
@@ -93,9 +73,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser({
               id: session.user.id,
               email: session.user.email!,
-              name: profile.name,
+              name: profile.full_name || '',
               role: profile.role
             });
+
+            // Redirect based on role
+            switch (profile.role) {
+              case 'admin':
+                navigate('/admin');
+                break;
+              case 'staff':
+                navigate('/staff');
+                break;
+              case 'member':
+                navigate('/member');
+                break;
+            }
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -108,62 +101,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
-  const login = async (email: string, password: string, role: UserRole) => {
-    if (!isSupabaseConfigured() || !supabase) {
-      toast.error('Authentication is not available. Please configure Supabase.');
-      return;
-    }
-    
+  const login = async (email: string, password: string) => {
     try {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      if (authUser) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('name, role')
-          .eq('id', authUser.id)
-          .single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', data.user.id)
+        .single();
 
-        if (profileError) throw profileError;
-
-        if (profile?.role !== role) {
-          await supabase.auth.signOut();
-          throw new Error('Invalid role for this user');
-        }
-
+      if (profile) {
         setUser({
-          id: authUser.id,
-          email: authUser.email!,
-          name: profile.name,
+          id: data.user.id,
+          email: data.user.email!,
+          name: profile.full_name || '',
           role: profile.role
         });
 
-        // Redirect based on role
-        switch (role) {
-          case 'member':
-            navigate('/member');
-            break;
-          case 'staff':
-            navigate('/staff');
-            break;
-          case 'admin':
-            navigate('/admin');
-            break;
-          default:
-            navigate('/');
-        }
-        
-        toast.success(`Welcome back, ${profile.name}!`);
+        toast.success(`Welcome back!`);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Login failed. Please try again.');
+      toast.error(error.message || 'Failed to login');
       throw error;
     }
   };
@@ -177,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.info('You have been logged out.');
   };
 
-  // Check if user has permissions for specific roles
   const hasPermission = (requiredRoles: UserRole[]): boolean => {
     if (!user) return false;
     return requiredRoles.includes(user.role);

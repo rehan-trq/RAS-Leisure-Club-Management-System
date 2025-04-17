@@ -8,14 +8,13 @@ import AnimatedButton from '@/components/ui/AnimatedButton';
 import { UserRole } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
-  onSubmit: (email: string, password: string, role: UserRole) => void;
+  onSubmit: (email: string, password: string) => void;
   loading: boolean;
 }
 
 const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('member');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
@@ -44,7 +43,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit(email, password, role);
+      onSubmit(email, password);
     }
   };
 
@@ -102,28 +101,6 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
           {errors.password && (
             <div className="text-sm text-destructive mt-1">{errors.password}</div>
           )}
-        </div>
-
-        <div className="form-control">
-          <Label className="form-label">Login As</Label>
-          <RadioGroup 
-            value={role} 
-            onValueChange={(value) => setRole(value as UserRole)}
-            className="flex space-x-4 mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="member" id="member" />
-              <Label htmlFor="member" className="cursor-pointer">Member</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="staff" id="staff" />
-              <Label htmlFor="staff" className="cursor-pointer">Staff</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="admin" id="admin" />
-              <Label htmlFor="admin" className="cursor-pointer">Admin</Label>
-            </div>
-          </RadioGroup>
         </div>
       </div>
       
