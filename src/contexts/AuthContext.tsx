@@ -4,20 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client with error handling
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Get environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Check for missing environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Make sure to set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-}
+// Create a function to check if Supabase config is valid
+const isSupabaseConfigured = () => {
+  return !!supabaseUrl && !!supabaseAnonKey;
+};
 
-// Initialize Supabase client
-const supabase = createClient(
-  supabaseUrl || '', // Provide fallback empty string to prevent runtime errors
-  supabaseAnonKey || '' // Provide fallback empty string to prevent runtime errors
-);
+// Initialize Supabase client only if we have valid configuration
+// This prevents the "supabaseUrl is required" error
+const supabase = isSupabaseConfigured() 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export type UserRole = 'member' | 'staff' | 'admin';
 
@@ -46,9 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if environment variables are set
-    if (!supabaseUrl || !supabaseAnonKey) {
-      toast.error('Supabase environment variables are missing. Please set them up properly.');
+    // Skip authentication initialization if Supabase is not configured
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('Supabase is not properly configured. Authentication features will be unavailable.');
       return;
     }
 
@@ -74,7 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        toast.error('Failed to initialize authentication. Please check your Supabase configuration.');
       }
     };
 
@@ -112,6 +111,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string, role: UserRole) => {
+    if (!isSupabaseConfigured() || !supabase) {
+      toast.error('Authentication is not available. Please configure Supabase.');
+      return;
+    }
+    
     try {
       const { data: { user: authUser }, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -165,7 +169,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     navigate('/login');
     toast.info('You have been logged out.');

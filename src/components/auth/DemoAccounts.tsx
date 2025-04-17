@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, AlertTriangleIcon } from 'lucide-react';
 
 const sampleAccounts = [
   { role: 'member', email: 'member@example.com', password: 'password123' },
@@ -11,14 +11,26 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
+  // Check if environment variables are set
+  const hasSupabaseConfig = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
       <Alert variant="default" className="mb-4">
         <AlertCircleIcon className="h-4 w-4" />
         <AlertTitle>Supabase Setup Required</AlertTitle>
         <AlertDescription className="text-xs mt-1">
-          Please make sure your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables are set.
-          Create these accounts in your Supabase project using the Auth section.
+          {hasSupabaseConfig ? (
+            <>
+              Create these accounts in your Supabase project using the Auth section.
+              You'll also need to create a 'profiles' table with columns for name and role.
+            </>
+          ) : (
+            <>
+              Please set your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.
+              You can find these in your Supabase project settings.
+            </>
+          )}
         </AlertDescription>
       </Alert>
       
