@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircleIcon, AlertTriangleIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const sampleAccounts = [
   { role: 'member', email: 'member@example.com', password: 'password123' },
@@ -11,20 +12,21 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
-  // Check if environment variables are set
-  const hasSupabaseConfig = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // We can check if the Supabase client is properly configured by looking at its URL
+  // Since we have hardcoded values in client.ts, this should be reliable
+  const isSupabaseConfigured = !!supabase && !!supabase.supabaseUrl && !!supabase.supabaseKey;
   
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
-      <Alert variant={hasSupabaseConfig ? "default" : "destructive"} className="mb-4">
-        {hasSupabaseConfig ? (
+      <Alert variant={isSupabaseConfigured ? "default" : "destructive"} className="mb-4">
+        {isSupabaseConfigured ? (
           <AlertCircleIcon className="h-4 w-4" />
         ) : (
           <AlertTriangleIcon className="h-4 w-4" />
         )}
-        <AlertTitle>{hasSupabaseConfig ? "Supabase Setup Required" : "Supabase Not Configured"}</AlertTitle>
+        <AlertTitle>{isSupabaseConfigured ? "Supabase Setup Required" : "Supabase Not Configured"}</AlertTitle>
         <AlertDescription className="text-xs mt-1">
-          {hasSupabaseConfig ? (
+          {isSupabaseConfigured ? (
             <>
               Create these accounts in your Supabase project using the Auth section.
               You'll also need to create a 'profiles' table with columns for name and role.
