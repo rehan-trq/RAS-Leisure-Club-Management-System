@@ -4,10 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 
+// Initialize Supabase client with error handling
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Check for missing environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables. Make sure to set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+}
+
 // Initialize Supabase client
 const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  supabaseUrl || '', // Provide fallback empty string to prevent runtime errors
+  supabaseAnonKey || '' // Provide fallback empty string to prevent runtime errors
 );
 
 export type UserRole = 'member' | 'staff' | 'admin';
@@ -37,24 +46,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if environment variables are set
+    if (!supabaseUrl || !supabaseAnonKey) {
+      toast.error('Supabase environment variables are missing. Please set them up properly.');
+      return;
+    }
+
     // Check active session on load
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, role')
-          .eq('id', session.user.id)
-          .single();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, role')
+            .eq('id', session.user.id)
+            .single();
 
-        if (profile) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email!,
-            name: profile.name,
-            role: profile.role
-          });
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              name: profile.name,
+              role: profile.role
+            });
+          }
         }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        toast.error('Failed to initialize authentication. Please check your Supabase configuration.');
       }
     };
 
@@ -63,19 +83,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, role')
-          .eq('id', session.user.id)
-          .single();
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name, role')
+            .eq('id', session.user.id)
+            .single();
 
-        if (profile) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email!,
-            name: profile.name,
-            role: profile.role
-          });
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              name: profile.name,
+              role: profile.role
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
         }
       } else {
         setUser(null);
