@@ -16,9 +16,13 @@ const DemoAccounts = () => {
   
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
-      <Alert variant="default" className="mb-4">
-        <AlertCircleIcon className="h-4 w-4" />
-        <AlertTitle>Supabase Setup Required</AlertTitle>
+      <Alert variant={hasSupabaseConfig ? "default" : "destructive"} className="mb-4">
+        {hasSupabaseConfig ? (
+          <AlertCircleIcon className="h-4 w-4" />
+        ) : (
+          <AlertTriangleIcon className="h-4 w-4" />
+        )}
+        <AlertTitle>{hasSupabaseConfig ? "Supabase Setup Required" : "Supabase Not Configured"}</AlertTitle>
         <AlertDescription className="text-xs mt-1">
           {hasSupabaseConfig ? (
             <>
@@ -27,8 +31,13 @@ const DemoAccounts = () => {
             </>
           ) : (
             <>
-              Please set your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.
-              You can find these in your Supabase project settings.
+              <p className="mb-2">To fix this error, you need to:</p>
+              <ol className="list-decimal pl-5 mb-2">
+                <li>Connect your project to Supabase using the green Supabase button in the top-right corner</li>
+                <li>Create a 'profiles' table with columns for id, name, and role</li>
+                <li>Set up authentication in your Supabase project</li>
+              </ol>
+              <p>Once connected, these demo accounts will be available for testing.</p>
             </>
           )}
         </AlertDescription>
