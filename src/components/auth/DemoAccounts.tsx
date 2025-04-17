@@ -13,7 +13,7 @@ const sampleAccounts = [
 const DemoAccounts = () => {
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
-      <Alert variant="warning" className="mb-4">
+      <Alert variant="default" className="mb-4">
         <AlertCircleIcon className="h-4 w-4" />
         <AlertTitle>Supabase Setup Required</AlertTitle>
         <AlertDescription className="text-xs mt-1">
