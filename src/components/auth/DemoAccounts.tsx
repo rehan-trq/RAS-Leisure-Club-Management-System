@@ -1,9 +1,8 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircleIcon, AlertTriangleIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AlertCircleIcon, Check } from 'lucide-react';
 
 const sampleAccounts = [
   { role: 'member', email: 'member@example.com', password: 'password123' },
@@ -12,38 +11,16 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
-  // Check if Supabase is already configured using the client constants
-  const supabaseUrl = "https://magaioqzbanpabahgkdq.supabase.co";
-  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hZ2Fpb3F6YmFucGFiYWhna2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MDg2MzIsImV4cCI6MjA2MDQ4NDYzMn0.pk_g-8zuA07tQnxMQqV4gQqzj_nJRDKT93WoISFsAe8";
-  
-  const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
-  
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
-      <Alert variant={isSupabaseConfigured ? "default" : "destructive"} className="mb-4">
-        {isSupabaseConfigured ? (
-          <AlertCircleIcon className="h-4 w-4" />
-        ) : (
-          <AlertTriangleIcon className="h-4 w-4" />
-        )}
-        <AlertTitle>{isSupabaseConfigured ? "Supabase Setup" : "Supabase Not Configured"}</AlertTitle>
-        <AlertDescription className="text-xs mt-1">
-          {isSupabaseConfigured ? (
-            <>
-              Create these accounts in your Supabase project using the Auth section.
-              You'll also need to create a 'profiles' table with columns for name and role.
-            </>
-          ) : (
-            <>
-              <p className="mb-2">To fix this error, you need to:</p>
-              <ol className="list-decimal pl-5 mb-2">
-                <li>Connect your project to Supabase using the green Supabase button in the top-right corner</li>
-                <li>Create a 'profiles' table with columns for id, name, and role</li>
-                <li>Set up authentication in your Supabase project</li>
-              </ol>
-              <p>Once connected, these demo accounts will be available for testing.</p>
-            </>
-          )}
+      <Alert className="mb-4 bg-blue-50 border-blue-200">
+        <AlertCircleIcon className="h-4 w-4 text-blue-500" />
+        <AlertTitle className="text-blue-700">Demo Accounts</AlertTitle>
+        <AlertDescription className="text-xs mt-1 text-blue-600">
+          The app creates profiles automatically for demo accounts.
+          <div className="mt-1 flex items-center text-green-600">
+            <Check size={14} className="mr-1" /> No setup required!
+          </div>
         </AlertDescription>
       </Alert>
       
@@ -55,7 +32,6 @@ const DemoAccounts = () => {
             <div className="flex flex-col space-y-1">
               <span>Email: {account.email}</span>
               <span>Password: {account.password}</span>
-              <span className="text-muted-foreground italic">(Create this account in Supabase)</span>
             </div>
           </div>
         ))}

@@ -54,6 +54,20 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     }
   };
 
+  // Pre-fill one of the demo accounts for easier testing
+  const fillDemoAccount = (role: string) => {
+    if (role === 'member') {
+      setEmail('member@example.com');
+      setPassword('password123');
+    } else if (role === 'staff') {
+      setEmail('staff@example.com');
+      setPassword('password123');
+    } else if (role === 'admin') {
+      setEmail('admin@example.com');
+      setPassword('password123');
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
@@ -108,6 +122,33 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
           {errors.password && (
             <div className="text-sm text-destructive mt-1">{errors.password}</div>
           )}
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 justify-between mb-4">
+        <span className="text-xs text-muted-foreground">Quick login:</span>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            type="button" 
+            onClick={() => fillDemoAccount('member')} 
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+          >
+            Member
+          </button>
+          <button 
+            type="button" 
+            onClick={() => fillDemoAccount('staff')} 
+            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+          >
+            Staff
+          </button>
+          <button 
+            type="button" 
+            onClick={() => fillDemoAccount('admin')} 
+            className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200"
+          >
+            Admin
+          </button>
         </div>
       </div>
       

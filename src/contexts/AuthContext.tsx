@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
-  // Simplified fetch user profile function
+  // Simplified fetch user profile function with better error handling
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data: profile, error } = await supabase
@@ -45,9 +45,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        
+        // If profile not found, create a default profile based on session data
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating default profile');
+          const userEmail = session?.user?.email || '';
+          
+          // Extract role from email for demo accounts
+          let role: UserRole = 'member';
+          if (userEmail.includes('admin')) {
+            role = 'admin';
+          } else if (userEmail.includes('staff')) {
+            role = 'staff';
+          }
+          
+          const defaultProfile = {
+            id: userId,
+            full_name: userEmail.split('@')[0],
+            role,
+            avatar_url: null
+          };
+          
+          // Insert default profile
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([defaultProfile]);
+            
+          if (insertError) {
+            console.error('Error creating default profile:', insertError);
+            return;
+          }
+          
+          // Set user with default profile
+          setUser({
+            id: userId,
+            email: userEmail,
+            full_name: defaultProfile.full_name,
+            name: defaultProfile.full_name,
+            role: defaultProfile.role,
+            avatar_url: null
+          });
+          
+          return;
+        }
+      }
       
       if (profile) {
+        console.log('Profile fetched successfully:', profile);
         // Set user with defaults for any missing fields
         setUser({
           id: userId,
@@ -59,8 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      // Don't toast errors here as it can be disruptive during initial load
+      console.error('Error in fetchUserProfile:', error);
     }
   };
 
