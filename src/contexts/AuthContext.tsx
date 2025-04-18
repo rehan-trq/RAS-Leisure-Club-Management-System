@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     try {
       console.log('Login attempt with:', { email });
       
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success('Successfully logged in!');
       navigate('/');
-      return data;
+      // Don't return the data, since the function is typed to return Promise<void>
     } catch (error: any) {
       console.error('Error logging in:', error);
       toast.error('Login failed. Please check your email and password.');

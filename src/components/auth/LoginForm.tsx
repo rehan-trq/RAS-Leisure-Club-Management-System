@@ -37,16 +37,20 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Login form submission with:', { email });
     
     if (validateForm()) {
       try {
-        // Trim email to avoid whitespace issues
-        await onSubmit(email.trim(), password);
+        const trimmedEmail = email.trim();
+        console.log('Submitting login with trimmed email:', trimmedEmail);
+        await onSubmit(trimmedEmail, password);
       } catch (error: any) {
         console.error('Login form error:', error);
         toast.error('Login failed. Please check your credentials and try again.');
-        setPassword(''); // Clear password on error
+        // Don't clear password on error to allow the user to try again
       }
+    } else {
+      console.log('Form validation failed');
     }
   };
 
