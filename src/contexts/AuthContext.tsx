@@ -11,6 +11,7 @@ export interface AuthUser {
   id: string;
   email: string;
   full_name: string | null;
+  name: string | null; // Added name property
   role: UserRole;
   avatar_url: string | null;
 }
@@ -51,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: userId,
           email: session?.user.email || '',
           full_name: profile.full_name,
+          name: profile.full_name, // Use full_name for name property
           role: profile.role,
           avatar_url: profile.avatar_url
         });

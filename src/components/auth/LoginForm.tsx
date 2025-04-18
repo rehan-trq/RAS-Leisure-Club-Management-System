@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import { toast } from 'sonner';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -42,9 +42,17 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     
     if (validateForm()) {
       try {
-        await onSubmit(email, password);
-      } catch (error) {
-        // Error is handled by the parent component
+        await onSubmit(email.trim(), password);
+      } catch (error: any) {
+        console.error('Login error:', error);
+        
+        // Check for specific error types
+        if (error?.message?.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password. Please try again.');
+        } else {
+          toast.error(error?.message || 'Login failed. Please try again.');
+        }
+        
         setPassword(''); // Clear password on error
       }
     }
@@ -88,7 +96,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
               id="password"
               type={showPassword ? 'text' : 'password'}
               className={`form-input pr-10 ${errors.password ? 'border-destructive focus:ring-destructive/20' : ''}`}
-              placeholder="••••••••"
+              placeholder="••••••���•"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}

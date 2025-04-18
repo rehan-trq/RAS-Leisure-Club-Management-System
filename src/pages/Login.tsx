@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
 import SocialLogin from '@/components/auth/SocialLogin';
 import DemoAccounts from '@/components/auth/DemoAccounts';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,9 @@ const Login = () => {
       await login(email, password);
       // Note: No need to manually redirect here as the auth context handles it
     } catch (error) {
-      // Error handling is done in the auth context
+      console.error('Error logging in:', error);
+      // Error handling is done in the LoginForm component
+    } finally {
       setLoading(false);
     }
   };
@@ -56,6 +60,13 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <InfoIcon className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                Use the demo accounts below for testing. Password for all accounts is: <span className="font-bold">password123</span>
+              </AlertDescription>
+            </Alert>
+            
             <LoginForm onSubmit={handleSubmit} loading={loading} />
             <SocialLogin onGoogleLogin={handleGoogleLogin} loading={loading} />
             <DemoAccounts />
