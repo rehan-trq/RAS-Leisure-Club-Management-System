@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 
 interface LoginFormProps {
-  onSubmit: (email: string, password: string) => void;
+  onSubmit: (email: string, password: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -36,11 +37,16 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit(email, password);
+      try {
+        await onSubmit(email, password);
+      } catch (error) {
+        // Error is handled by the parent component
+        setPassword(''); // Clear password on error
+      }
     }
   };
 
