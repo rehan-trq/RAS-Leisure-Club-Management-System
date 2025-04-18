@@ -11,7 +11,7 @@ export interface AuthUser {
   id: string;
   email: string;
   full_name: string | null;
-  name: string | null; // Added name property
+  name: string | null;
   role: UserRole;
   avatar_url: string | null;
 }
@@ -36,49 +36,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
-  // Fetch user profile data
+  // Simplified fetch user profile function
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       
       if (profile) {
+        // Set user with defaults for any missing fields
         setUser({
           id: userId,
-          email: session?.user.email || '',
-          full_name: profile.full_name,
-          name: profile.full_name, // Use full_name for name property
-          role: profile.role,
-          avatar_url: profile.avatar_url
+          email: session?.user?.email || '',
+          full_name: profile.full_name || null,
+          name: profile.full_name || null,
+          role: profile.role || 'member',
+          avatar_url: profile.avatar_url || null
         });
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      toast.error('Failed to fetch user profile');
+      // Don't toast errors here as it can be disruptive during initial load
     }
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-
-        if (currentSession?.user) {
-          // Use setTimeout to prevent Supabase Auth deadlock
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-          }, 0);
-        } else {
-          setUser(null);
-        }
+    // First set up the auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log('Auth state change:', event);
+      setSession(currentSession);
+      
+      if (currentSession?.user) {
+        // Use setTimeout to prevent Supabase Auth deadlock
+        setTimeout(() => {
+          fetchUserProfile(currentSession.user.id);
+        }, 0);
+      } else {
+        setUser(null);
       }
-    );
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -96,18 +96,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Login attempt with:', { email });
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase login error:', error);
+        throw error;
+      }
       
       toast.success('Successfully logged in!');
       navigate('/');
+      return data;
     } catch (error: any) {
       console.error('Error logging in:', error);
-      toast.error(error.message || 'Failed to log in');
+      toast.error('Login failed. Please check your email and password.');
       throw error;
     }
   };

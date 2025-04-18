@@ -21,10 +21,10 @@ const Login = () => {
     
     try {
       await login(email, password);
-      // Note: No need to manually redirect here as the auth context handles it
+      // Auth context handles the redirect
     } catch (error) {
-      console.error('Error logging in:', error);
-      // Error handling is done in the LoginForm component
+      console.error('Error in Login page:', error);
+      // Error is already handled in the LoginForm and AuthContext
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,8 @@ const Login = () => {
             <Alert className="mb-4 bg-blue-50 border-blue-200">
               <InfoIcon className="h-4 w-4 text-blue-500" />
               <AlertDescription className="text-blue-700">
-                Use the demo accounts below for testing. Password for all accounts is: <span className="font-bold">password123</span>
+                Test account: <span className="font-bold">member@example.com</span><br/>
+                Password: <span className="font-bold">password123</span>
               </AlertDescription>
             </Alert>
             

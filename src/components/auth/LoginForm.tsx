@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -23,9 +24,6 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     if (!email) {
       newErrors.email = 'Email is required';
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-      isValid = false;
     }
 
     if (!password) {
@@ -42,17 +40,11 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     
     if (validateForm()) {
       try {
+        // Trim email to avoid whitespace issues
         await onSubmit(email.trim(), password);
       } catch (error: any) {
-        console.error('Login error:', error);
-        
-        // Check for specific error types
-        if (error?.message?.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password. Please try again.');
-        } else {
-          toast.error(error?.message || 'Login failed. Please try again.');
-        }
-        
+        console.error('Login form error:', error);
+        toast.error('Login failed. Please check your credentials and try again.');
         setPassword(''); // Clear password on error
       }
     }
@@ -96,7 +88,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
               id="password"
               type={showPassword ? 'text' : 'password'}
               className={`form-input pr-10 ${errors.password ? 'border-destructive focus:ring-destructive/20' : ''}`}
-              placeholder="••••••���•"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
