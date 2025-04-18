@@ -12,9 +12,9 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
-  // We can check if the Supabase client is properly configured by looking at its URL
-  // Since we have hardcoded values in client.ts, this should be reliable
-  const isSupabaseConfigured = !!supabase && !!supabase.supabaseUrl && !!supabase.supabaseKey;
+  // Check if the Supabase client is properly configured by checking if the URL contains 'supabase'
+  // This is a simple check but should work for our purposes
+  const isSupabaseConfigured = !!supabase && typeof supabase.url === 'string' && supabase.url.includes('supabase');
   
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
