@@ -12,9 +12,9 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
-  // Check if the Supabase client is properly configured by checking if the URL contains 'supabase'
-  // This is a simple check but should work for our purposes
-  const isSupabaseConfigured = !!supabase && typeof supabase.url === 'string' && supabase.url.includes('supabase');
+  // Check if the Supabase client is properly configured by checking its configuration
+  const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && 
+                               import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
@@ -24,7 +24,7 @@ const DemoAccounts = () => {
         ) : (
           <AlertTriangleIcon className="h-4 w-4" />
         )}
-        <AlertTitle>{isSupabaseConfigured ? "Supabase Setup Required" : "Supabase Not Configured"}</AlertTitle>
+        <AlertTitle>{isSupabaseConfigured ? "Supabase Setup" : "Supabase Not Configured"}</AlertTitle>
         <AlertDescription className="text-xs mt-1">
           {isSupabaseConfigured ? (
             <>
