@@ -12,9 +12,11 @@ const sampleAccounts = [
 ];
 
 const DemoAccounts = () => {
-  // Check if the Supabase client is properly configured by checking its configuration
-  const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && 
-                               import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // Check if Supabase is already configured using the client constants
+  const supabaseUrl = "https://magaioqzbanpabahgkdq.supabase.co";
+  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hZ2Fpb3F6YmFucGFiYWhna2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MDg2MzIsImV4cCI6MjA2MDQ4NDYzMn0.pk_g-8zuA07tQnxMQqV4gQqzj_nJRDKT93WoISFsAe8";
+  
+  const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
   
   return (
     <div className="mt-8 p-4 bg-secondary/50 rounded-md">
