@@ -43,7 +43,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data as Service[];
     }
   });
 
@@ -57,7 +57,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('date', { ascending: false });
       
       if (error) throw error;
-      return data;
+      
+      // Ensure correct typing for status
+      return data.map(booking => ({
+        ...booking,
+        status: booking.status as Booking['status']
+      })) as Booking[];
     }
   });
 
@@ -108,7 +113,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      
+      // Ensure correct typing
+      return data.map(request => ({
+        ...request,
+        priority: request.priority as MaintenanceRequest['priority'],
+        status: request.status as MaintenanceRequest['status']
+      })) as MaintenanceRequest[];
     }
   });
 
@@ -162,7 +173,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      
+      // Ensure correct typing
+      return data.map(announcement => ({
+        ...announcement,
+        audience: announcement.audience as Announcement['audience']
+      })) as Announcement[];
     }
   });
 

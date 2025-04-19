@@ -1,9 +1,27 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
 import { DataProvider } from "@/contexts/DataContext";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ProtectedRoute from "@/components/ProtectedRoute";
+
+// Page imports
+import Index from "@/pages/Index";
+import Services from "@/pages/Services";
+import ServiceDetail from "@/pages/ServiceDetail";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import MemberLanding from "@/pages/MemberLanding";
+import BookActivity from "@/pages/BookActivity";
+import MyBookings from "@/pages/MyBookings";
+import StaffLanding from "@/pages/StaffLanding";
+import AdminLanding from "@/pages/AdminLanding";
+import AdminBookings from "@/pages/AdminBookings";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
   defaultOptions: {
