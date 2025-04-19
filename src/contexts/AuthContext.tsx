@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,6 +15,7 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
+  isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
   isMember: boolean;
@@ -33,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      // Determine role based on email for demo purposes
       let role: UserRole = 'member';
       if (email.includes('admin')) {
         role = 'admin';
@@ -41,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role = 'staff';
       }
 
-      // Create mock user without authentication
       const mockUser: AuthUser = {
         id: crypto.randomUUID(),
         email,
@@ -54,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mockUser);
       toast.success('Successfully logged in!');
       
-      // Navigate based on role
       switch (role) {
         case 'admin':
           navigate('/admin');
@@ -101,7 +98,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: Partial<AuthUser>) => {
     try {
-      // Update local user state
       setUser(prev => prev ? { ...prev, ...data } : null);
       toast.success('Profile updated successfully');
     } catch (error: any) {
@@ -111,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isAuthenticated = !!user;
   const isAdmin = !!user && user.role === 'admin';
   const isStaff = !!user && user.role === 'staff';
   const isMember = !!user && user.role === 'member';
@@ -119,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        isAuthenticated,
         isAdmin,
         isStaff,
         isMember,
