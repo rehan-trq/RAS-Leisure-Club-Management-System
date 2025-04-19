@@ -7,15 +7,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) {
-    // Redirect to login if not authenticated
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Check if user has required role
+  // Only check if user has required role
   if (user && !allowedRoles.includes(user.role)) {
     // Redirect based on user role if accessing unauthorized route
     switch (user.role) {
@@ -30,7 +25,7 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     }
   }
 
-  // If authenticated and has permission, render the child routes
+  // If no role restrictions or has permission, render the child routes
   return <Outlet />;
 };
 

@@ -1,9 +1,7 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'member' | 'staff' | 'admin';
 
@@ -18,8 +16,6 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
-  isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
   isMember: boolean;
@@ -33,129 +29,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
-
-  // Simplified fetch user profile function with better error handling
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        
-        // If profile not found, create a default profile based on session data
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating default profile');
-          const userEmail = session?.user?.email || '';
-          
-          // Extract role from email for demo accounts
-          let role: UserRole = 'member';
-          if (userEmail.includes('admin')) {
-            role = 'admin';
-          } else if (userEmail.includes('staff')) {
-            role = 'staff';
-          }
-          
-          const defaultProfile = {
-            id: userId,
-            full_name: userEmail.split('@')[0],
-            role,
-            avatar_url: null
-          };
-          
-          // Insert default profile
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert([defaultProfile]);
-            
-          if (insertError) {
-            console.error('Error creating default profile:', insertError);
-            return;
-          }
-          
-          // Set user with default profile
-          setUser({
-            id: userId,
-            email: userEmail,
-            full_name: defaultProfile.full_name,
-            name: defaultProfile.full_name,
-            role: defaultProfile.role,
-            avatar_url: null
-          });
-          
-          return;
-        }
-      }
-      
-      if (profile) {
-        console.log('Profile fetched successfully:', profile);
-        // Set user with defaults for any missing fields
-        setUser({
-          id: userId,
-          email: session?.user?.email || '',
-          full_name: profile.full_name || null,
-          name: profile.full_name || null,
-          role: profile.role || 'member',
-          avatar_url: profile.avatar_url || null
-        });
-      }
-    } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
-    }
-  };
-
-  useEffect(() => {
-    // First set up the auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      console.log('Auth state change:', event);
-      setSession(currentSession);
-      
-      if (currentSession?.user) {
-        // Use setTimeout to prevent Supabase Auth deadlock
-        setTimeout(() => {
-          fetchUserProfile(currentSession.user.id);
-        }, 0);
-      } else {
-        setUser(null);
-      }
-    });
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      
-      if (currentSession?.user) {
-        fetchUserProfile(currentSession.user.id);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      console.log('Login attempt with:', { email });
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Supabase login error:', error);
-        throw error;
+      // Determine role based on email for demo purposes
+      let role: UserRole = 'member';
+      if (email.includes('admin')) {
+        role = 'admin';
+      } else if (email.includes('staff')) {
+        role = 'staff';
       }
-      
+
+      // Create mock user without authentication
+      const mockUser: AuthUser = {
+        id: crypto.randomUUID(),
+        email,
+        full_name: email.split('@')[0],
+        name: email.split('@')[0],
+        role,
+        avatar_url: null
+      };
+
+      setUser(mockUser);
       toast.success('Successfully logged in!');
-      navigate('/');
-      // Don't return the data, since the function is typed to return Promise<void>
+      
+      // Navigate based on role
+      switch (role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'staff':
+          navigate('/staff');
+          break;
+        default:
+          navigate('/member');
+      }
     } catch (error: any) {
       console.error('Error logging in:', error);
       toast.error('Login failed. Please check your email and password.');
@@ -165,20 +74,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (email: string, password: string, fullName: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const mockUser: AuthUser = {
+        id: crypto.randomUUID(),
         email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
+        full_name: fullName,
+        name: fullName,
+        role: 'member',
+        avatar_url: null
+      };
 
-      if (error) throw error;
-
-      toast.success('Successfully signed up! Please check your email to verify your account.');
-      navigate('/login');
+      setUser(mockUser);
+      toast.success('Successfully signed up!');
+      navigate('/member');
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast.error(error.message || 'Failed to sign up');
@@ -187,31 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      setSession(null);
-      navigate('/login');
-      toast.success('Successfully logged out');
-    } catch (error: any) {
-      console.error('Error logging out:', error);
-      toast.error(error.message || 'Failed to log out');
-    }
+    setUser(null);
+    navigate('/login');
+    toast.success('Successfully logged out');
   };
 
   const updateProfile = async (data: Partial<AuthUser>) => {
     try {
-      if (!user?.id) throw new Error('No user logged in');
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
       // Update local user state
       setUser(prev => prev ? { ...prev, ...data } : null);
       toast.success('Profile updated successfully');
@@ -222,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAuthenticated = !!user;
   const isAdmin = !!user && user.role === 'admin';
   const isStaff = !!user && user.role === 'staff';
   const isMember = !!user && user.role === 'member';
@@ -231,8 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        session,
-        isAuthenticated,
         isAdmin,
         isStaff,
         isMember,
