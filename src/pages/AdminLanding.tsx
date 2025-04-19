@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -159,22 +158,18 @@ const AdminLanding = () => {
                   Manage Bookings
                 </Button>
               </Link>
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                User Management
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <FileText className="mr-2 h-4 w-4" />
-                Generate Reports
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Activity className="mr-2 h-4 w-4" />
-                System Performance
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Financial Dashboard
-              </Button>
+              <Link to="/admin/users">
+                <Button className="w-full justify-start" variant="outline">
+                  <Users className="mr-2 h-4 w-4" />
+                  User Management
+                </Button>
+              </Link>
+              <Link to="/admin/financial">
+                <Button className="w-full justify-start" variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Financial Dashboard
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

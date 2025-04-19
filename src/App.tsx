@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,10 @@ import StaffLanding from "@/pages/StaffLanding";
 import AdminLanding from "@/pages/AdminLanding";
 import AdminBookings from "@/pages/AdminBookings";
 import NotFound from "@/pages/NotFound";
+
+// New page imports
+import UserManagement from "@/pages/admin/UserManagement";
+import FinancialDashboard from "@/pages/admin/FinancialDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +67,8 @@ const App = () => (
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/admin" element={<AdminLanding />} />
             <Route path="/admin/bookings" element={<AdminBookings />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/financial" element={<FinancialDashboard />} />
           </Route>
           
           {/* 404 route */}
