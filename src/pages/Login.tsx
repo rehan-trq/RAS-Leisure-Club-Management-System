@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
@@ -14,19 +14,40 @@ import { InfoIcon } from 'lucide-react';
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated, user } = useAuth();
+
+  // If user is already authenticated, redirect to appropriate dashboard
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      // Redirect based on user role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'staff':
+          navigate('/staff');
+          break;
+        case 'member':
+          navigate('/member');
+          break;
+        default:
+          navigate('/');
+          break;
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (email: string, password: string) => {
     setLoading(true);
     
     try {
       await login(email, password);
-      // Auth context handles the redirect
+      // Auth context handles the redirect after successful login
     } catch (error) {
       console.error('Error in Login page:', error);
-      // Error is already handled in the LoginForm and AuthContext
-    } finally {
       setLoading(false);
+      // Error is shown by the toast in the AuthContext
     }
   };
 

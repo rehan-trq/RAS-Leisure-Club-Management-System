@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -24,7 +25,30 @@ const Signup = () => {
     password?: string;
     confirmPassword?: string;
   }>({});
+  
   const navigate = useNavigate();
+  const { signup, isAuthenticated, user } = useAuth();
+
+  // If user is already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Redirect based on user role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'staff':
+          navigate('/staff');
+          break;
+        case 'member':
+          navigate('/member');
+          break;
+        default:
+          navigate('/');
+          break;
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const passwordRequirements = [
     { id: 'length', label: 'At least 8 characters', isMet: password.length >= 8 },
@@ -89,30 +113,10 @@ const Signup = () => {
       setLoading(true);
       
       try {
-        // Register user with Supabase
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            }
-          }
-        });
-
-        if (error) {
-          toast.error(error.message);
-          setLoading(false);
-          return;
-        }
-
-        toast.success('Account created successfully! You can now log in.');
-        console.log('Signup successful:', data);
-        navigate('/login');
+        await signup(email, password, fullName);
+        // The AuthContext will handle redirection
       } catch (error: any) {
         console.error('Signup error:', error);
-        toast.error(error.message || 'Failed to create account');
-      } finally {
         setLoading(false);
       }
     }

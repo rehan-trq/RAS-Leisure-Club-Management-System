@@ -46,7 +46,6 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
         await onSubmit(trimmedEmail, password);
       } catch (error: any) {
         console.error('Login form error:', error);
-        toast.error('Login failed. Please check your credentials and try again.');
         // Don't clear password on error to allow the user to try again
       }
     } else {
