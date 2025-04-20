@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
@@ -15,25 +15,24 @@ import { supabase } from '@/integrations/supabase/client';
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { login, isAuthenticated, user } = useAuth();
 
   // If user is already authenticated, redirect to appropriate dashboard
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated && user) {
       // Redirect based on user role
       switch (user.role) {
         case 'admin':
-          navigate('/admin');
+          navigate('/admin', { replace: true });
           break;
         case 'staff':
-          navigate('/staff');
+          navigate('/staff', { replace: true });
           break;
         case 'member':
-          navigate('/member');
+          navigate('/member', { replace: true });
           break;
         default:
-          navigate('/');
+          navigate('/', { replace: true });
           break;
       }
     }
@@ -52,15 +51,23 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
     
-    // Simulate Google API request
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      
+      if (error) {
+        toast.error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Error signing in with Google:', error);
+      toast.error(error.message || 'Failed to sign in with Google');
+    } finally {
       setLoading(false);
-      toast.success('Successfully logged in with Google!');
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -85,8 +92,7 @@ const Login = () => {
             <Alert className="mb-4 bg-blue-50 border-blue-200">
               <InfoIcon className="h-4 w-4 text-blue-500" />
               <AlertDescription className="text-blue-700">
-                Test account: <span className="font-bold">member@example.com</span><br/>
-                Password: <span className="font-bold">password123</span>
+                Use the quick login buttons below to access demo accounts
               </AlertDescription>
             </Alert>
             

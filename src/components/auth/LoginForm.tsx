@@ -5,17 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
   loading: boolean;
 }
 
-const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
+const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -53,17 +56,33 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
     }
   };
 
-  // Pre-fill one of the demo accounts for easier testing
-  const fillDemoAccount = (role: string) => {
+  // Login with one of the demo accounts
+  const loginWithDemoAccount = async (role: string) => {
+    let demoEmail = '';
+    let demoPassword = 'password123';
+    
     if (role === 'member') {
-      setEmail('member@example.com');
-      setPassword('password123');
+      demoEmail = 'member@example.com';
     } else if (role === 'staff') {
-      setEmail('staff@example.com');
-      setPassword('password123');
+      demoEmail = 'staff@example.com';
     } else if (role === 'admin') {
-      setEmail('admin@example.com');
-      setPassword('password123');
+      demoEmail = 'admin@example.com';
+    }
+    
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    
+    // Use local loading state to prevent multiple clicks
+    setLoading(true);
+    
+    try {
+      await login(demoEmail, demoPassword);
+      toast.success(`Logging in as ${role}...`);
+    } catch (error: any) {
+      console.error(`Error logging in as ${role}:`, error);
+      toast.error(`Failed to login as ${role}: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,7 +100,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
             placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
+            disabled={parentLoading || loading}
           />
           {errors.email && (
             <div className="text-sm text-destructive mt-1">{errors.email}</div>
@@ -108,7 +127,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              disabled={parentLoading || loading}
             />
             <button
               type="button"
@@ -129,22 +148,25 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
         <div className="flex flex-wrap gap-2">
           <button 
             type="button" 
-            onClick={() => fillDemoAccount('member')} 
+            onClick={() => loginWithDemoAccount('member')} 
             className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+            disabled={parentLoading || loading}
           >
             Member
           </button>
           <button 
             type="button" 
-            onClick={() => fillDemoAccount('staff')} 
+            onClick={() => loginWithDemoAccount('staff')} 
             className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+            disabled={parentLoading || loading}
           >
             Staff
           </button>
           <button 
             type="button" 
-            onClick={() => fillDemoAccount('admin')} 
+            onClick={() => loginWithDemoAccount('admin')} 
             className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200"
+            disabled={parentLoading || loading}
           >
             Admin
           </button>
@@ -156,9 +178,9 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
         size="lg"
         className="w-full"
         type="submit"
-        disabled={loading}
+        disabled={parentLoading || loading}
       >
-        {loading ? 'Logging in...' : 'Login'}
+        {parentLoading || loading ? 'Logging in...' : 'Login'}
       </AnimatedButton>
     </form>
   );

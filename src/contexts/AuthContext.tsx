@@ -110,9 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           
           setUser(authUser);
-          
-          // Handle redirection based on role for existing session
-          redirectBasedOnRole(authUser.role);
         } catch (error) {
           console.error('Error initializing auth:', error);
         }
@@ -130,28 +127,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Redirecting based on role:', role);
     switch(role) {
       case 'admin':
-        navigate('/admin');
+        navigate('/admin', { replace: true });
         break;
       case 'staff':
-        navigate('/staff');
+        navigate('/staff', { replace: true });
         break;
       case 'member':
-        navigate('/member');
+        navigate('/member', { replace: true });
         break;
       default:
-        navigate('/');
+        navigate('/', { replace: true });
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
       console.log('Attempting login with:', email);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      
+      // First check if we need to create the demo accounts
+      if (['member@example.com', 'staff@example.com', 'admin@example.com'].includes(email) && password === 'password123') {
+        // Check if this demo account already exists
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
+        if (error && error.message === 'Invalid login credentials') {
+          // Demo account doesn't exist yet, create it
+          console.log(`Creating demo account for ${email}`);
+          
+          // Extract role from email
+          const role = email.split('@')[0] as UserRole;
+          
+          // Sign up the demo account
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
+                role: role
+              }
+            }
+          });
+
+          if (signUpError) {
+            throw signUpError;
+          }
+          
+          // Try to sign in again
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (retryError) {
+            throw retryError;
+          }
+          
+          toast.success('Demo account created and logged in!');
+          return;
+        }
+        
+        if (error) {
+          throw error;
+        }
+      } else {
+        // Regular login
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+      }
+      
       toast.success('Successfully logged in!');
       // Let the auth state listener handle the redirect
     } catch (error: any) {
