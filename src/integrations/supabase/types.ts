@@ -86,6 +86,33 @@ export type Database = {
           },
         ]
       }
+      facility_checkins: {
+        Row: {
+          check_in_time: string
+          check_out_time: string | null
+          facility: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          check_in_time?: string
+          check_out_time?: string | null
+          facility: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          check_in_time?: string
+          check_out_time?: string | null
+          facility?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       maintenance_requests: {
         Row: {
           assigned_to: string | null
@@ -120,6 +147,48 @@ export type Database = {
           priority?: string
           reported_by?: string
           resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      maintenance_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          facility: string
+          id: string
+          issue: string
+          notes: string | null
+          priority: string
+          reported_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          facility: string
+          id?: string
+          issue: string
+          notes?: string | null
+          priority: string
+          reported_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          facility?: string
+          id?: string
+          issue?: string
+          notes?: string | null
+          priority?: string
+          reported_by?: string
           status?: string
           updated_at?: string
         }
@@ -187,6 +256,78 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          priority: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          priority?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          priority?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_schedules: {
+        Row: {
+          activity_type: string
+          created_at: string
+          end_time: string
+          facility: string
+          id: string
+          notes: string | null
+          staff_id: string
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          end_time: string
+          facility: string
+          id?: string
+          notes?: string | null
+          staff_id: string
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          end_time?: string
+          facility?: string
+          id?: string
+          notes?: string | null
+          staff_id?: string
+          start_time?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []

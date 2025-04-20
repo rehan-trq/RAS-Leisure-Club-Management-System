@@ -1,22 +1,29 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
 import { Wrench, ClipboardList, Calendar, Users, Bell } from 'lucide-react';
 
 const StaffLanding = () => {
   const { user, logout } = useAuth();
-
-  const pendingMaintenanceRequests = [
-    { id: 1, facility: 'Swimming Pool', issue: 'Water filter replacement', priority: 'High' },
-    { id: 2, facility: 'Tennis Court', issue: 'Net adjustment', priority: 'Medium' },
-    { id: 3, facility: 'Gym', issue: 'Treadmill maintenance', priority: 'Low' },
-  ];
+  const { maintenanceRequests, isLoadingMaintenance, updateMaintenanceStatus } = useData();
+  
+  const pendingMaintenanceRequests = maintenanceRequests.filter(
+    request => request.status === 'pending'
+  ).slice(0, 3);
 
   const todayBookings = 8;
-  const pendingTasks = 3;
+  const pendingTasks = pendingMaintenanceRequests.length;
+
+  const handleResolveTask = async (id: string) => {
+    try {
+      await updateMaintenanceStatus(id, 'resolved');
+    } catch (error) {
+      console.error('Error resolving task:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-10">
@@ -111,26 +118,42 @@ const StaffLanding = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingMaintenanceRequests.map((request) => (
-                        <tr key={request.id} className="border-b">
-                          <td className="py-3 px-4">{request.facility}</td>
-                          <td className="py-3 px-4">{request.issue}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              request.priority === 'High' 
-                                ? 'bg-red-100 text-red-800' 
-                                : request.priority === 'Medium'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                            }`}>
-                              {request.priority}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button variant="outline" size="sm">Resolve</Button>
-                          </td>
+                      {isLoadingMaintenance ? (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center">Loading...</td>
                         </tr>
-                      ))}
+                      ) : pendingMaintenanceRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center">No pending maintenance requests</td>
+                        </tr>
+                      ) : (
+                        pendingMaintenanceRequests.map((request) => (
+                          <tr key={request.id} className="border-b">
+                            <td className="py-3 px-4">{request.facility}</td>
+                            <td className="py-3 px-4">{request.issue}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                request.priority === 'high'
+                                  ? 'bg-red-100 text-red-800'
+                                  : request.priority === 'medium'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-green-100 text-green-800'
+                              }`}>
+                                {request.priority}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResolveTask(request.id)}
+                              >
+                                Resolve
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
