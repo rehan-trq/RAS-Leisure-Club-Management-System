@@ -1,82 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
-import SocialLogin from '@/components/auth/SocialLogin';
-import DemoAccounts from '@/components/auth/DemoAccounts';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { login, isAuthenticated, user } = useAuth();
-
-  // If user is already authenticated, redirect to appropriate dashboard
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      // Redirect based on user role
-      switch (user.role) {
-        case 'admin':
-          navigate('/admin', { replace: true });
-          break;
-        case 'staff':
-          navigate('/staff', { replace: true });
-          break;
-        case 'member':
-          navigate('/member', { replace: true });
-          break;
-        default:
-          navigate('/', { replace: true });
-          break;
-      }
-    }
-  }, [isAuthenticated, user, navigate]);
-
+  // Dummy function since authentication is disabled
   const handleSubmit = async (email: string, password: string) => {
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      await login(email, password);
-      // Auth context handles the redirect after successful login
-    } catch (error) {
-      console.error('Error in Login page:', error);
-      // Error is shown by the toast in the AuthContext
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) {
-        toast.error(error.message);
-      }
-    } catch (error: any) {
-      console.error('Error signing in with Google:', error);
-      toast.error(error.message || 'Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
+    console.log('Login disabled, use quick access buttons instead');
+    return Promise.resolve();
   };
 
   return (
@@ -100,13 +35,12 @@ const Login = () => {
           <CardContent>
             <Alert className="mb-4 bg-blue-50 border-blue-200">
               <InfoIcon className="h-4 w-4 text-blue-500" />
-              <AlertDescription className="text-blue-700">
-                Use the quick login buttons below to access demo accounts
+              <AlertDescription className="text-blue-700 font-medium">
+                Authentication is disabled! Use the quick access buttons below to access different roles.
               </AlertDescription>
             </Alert>
             
-            <LoginForm onSubmit={handleSubmit} loading={loading} />
-            <SocialLogin onGoogleLogin={handleGoogleLogin} loading={loading} />
+            <LoginForm onSubmit={handleSubmit} loading={false} />
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 text-center">
             <p className="text-sm text-muted-foreground">

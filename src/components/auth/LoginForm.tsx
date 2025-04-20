@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -18,7 +19,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -49,42 +50,45 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
         await onSubmit(trimmedEmail, password);
       } catch (error: any) {
         console.error('Login form error:', error);
-        // Don't clear password on error to allow the user to try again
       }
     } else {
       console.log('Form validation failed');
     }
   };
 
-  // Login with one of the demo accounts
-  const loginWithDemoAccount = async (role: string) => {
-    let demoEmail = '';
-    const demoPassword = 'password123';
-    
-    if (role === 'member') {
-      demoEmail = 'member@example.com';
-    } else if (role === 'staff') {
-      demoEmail = 'staff@example.com';
-    } else if (role === 'admin') {
-      demoEmail = 'admin@example.com';
-    }
+  // Login with one of the demo accounts - bypassing authentication
+  const loginWithDemoAccount = (role: string) => {
+    console.log(`Direct access as ${role} role`);
     
     // Set the form fields for visual feedback
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    
-    // Use local loading state to prevent multiple clicks
-    setLoading(true);
-    
-    try {
-      toast.loading(`Logging in as ${role}...`);
-      await login(demoEmail, demoPassword);
-    } catch (error: any) {
-      console.error(`Error logging in as ${role}:`, error);
-      toast.error(`Failed to login as ${role}: ${error.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
+    if (role === 'member') {
+      setEmail('member@example.com');
+    } else if (role === 'staff') {
+      setEmail('staff@example.com'); 
+    } else if (role === 'admin') {
+      setEmail('admin@example.com');
     }
+    
+    setPassword('password123');
+    
+    toast.success(`Accessing as ${role}...`);
+    
+    // Direct navigation based on role
+    setTimeout(() => {
+      switch(role) {
+        case 'member':
+          navigate('/member', { replace: true });
+          break;
+        case 'staff':
+          navigate('/staff', { replace: true });
+          break;
+        case 'admin':
+          navigate('/admin', { replace: true });
+          break;
+        default:
+          navigate('/', { replace: true });
+      }
+    }, 500); // Small delay to show the toast
   };
 
   return (
@@ -145,13 +149,12 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
       </div>
       
       <div className="flex flex-wrap gap-2 justify-between mb-4">
-        <span className="text-xs text-muted-foreground">Quick login:</span>
+        <span className="text-xs text-muted-foreground">Quick access:</span>
         <div className="flex flex-wrap gap-2">
           <button 
             type="button" 
             onClick={() => loginWithDemoAccount('member')} 
             className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
-            disabled={parentLoading || loading}
           >
             Member
           </button>
@@ -159,7 +162,6 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             type="button" 
             onClick={() => loginWithDemoAccount('staff')} 
             className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
-            disabled={parentLoading || loading}
           >
             Staff
           </button>
@@ -167,7 +169,6 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             type="button" 
             onClick={() => loginWithDemoAccount('admin')} 
             className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200"
-            disabled={parentLoading || loading}
           >
             Admin
           </button>
