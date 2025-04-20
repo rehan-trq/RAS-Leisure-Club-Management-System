@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
