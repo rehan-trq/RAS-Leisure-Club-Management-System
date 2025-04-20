@@ -39,6 +39,11 @@ const Login = () => {
   }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (email: string, password: string) => {
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -46,8 +51,9 @@ const Login = () => {
       // Auth context handles the redirect after successful login
     } catch (error) {
       console.error('Error in Login page:', error);
-      setLoading(false);
       // Error is shown by the toast in the AuthContext
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,6 +63,9 @@ const Login = () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
       });
       
       if (error) {
@@ -98,7 +107,6 @@ const Login = () => {
             
             <LoginForm onSubmit={handleSubmit} loading={loading} />
             <SocialLogin onGoogleLogin={handleGoogleLogin} loading={loading} />
-            <DemoAccounts />
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 text-center">
             <p className="text-sm text-muted-foreground">

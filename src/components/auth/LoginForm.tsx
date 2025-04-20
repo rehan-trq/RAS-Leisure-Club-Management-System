@@ -59,7 +59,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
   // Login with one of the demo accounts
   const loginWithDemoAccount = async (role: string) => {
     let demoEmail = '';
-    let demoPassword = 'password123';
+    const demoPassword = 'password123';
     
     if (role === 'member') {
       demoEmail = 'member@example.com';
@@ -69,6 +69,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
       demoEmail = 'admin@example.com';
     }
     
+    // Set the form fields for visual feedback
     setEmail(demoEmail);
     setPassword(demoPassword);
     
@@ -76,8 +77,8 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
     setLoading(true);
     
     try {
+      toast.loading(`Logging in as ${role}...`);
       await login(demoEmail, demoPassword);
-      toast.success(`Logging in as ${role}...`);
     } catch (error: any) {
       console.error(`Error logging in as ${role}:`, error);
       toast.error(`Failed to login as ${role}: ${error.message || 'Unknown error'}`);
