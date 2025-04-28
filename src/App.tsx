@@ -27,6 +27,8 @@ import NotFound from "@/pages/NotFound";
 // New page imports
 import UserManagement from "@/pages/admin/UserManagement";
 import FinancialDashboard from "@/pages/admin/FinancialDashboard";
+import Payment from "@/pages/Payment";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +55,8 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             
             {/* Member routes */}
             <Route element={<ProtectedRoute allowedRoles={['member', 'staff', 'admin']} />}>
