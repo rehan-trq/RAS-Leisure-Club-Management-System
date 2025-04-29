@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -8,6 +7,10 @@ export type Json =
   | Json[];
 
 export type UserRole = 'member' | 'staff' | 'admin';
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'processed';
+export type MaintenanceStatus = 'pending' | 'in_progress' | 'resolved';
+export type MaintenancePriority = 'low' | 'medium' | 'high';
+export type FeedbackStatus = 'new' | 'flagged' | 'responded' | 'archived';
 
 export interface Service {
   id: string;
@@ -38,8 +41,8 @@ export interface MaintenanceRequest {
   id: string;
   facility: string;
   issue: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in_progress' | 'resolved';
+  priority: MaintenancePriority;
+  status: MaintenanceStatus;
   reported_by: string;
   assigned_to: string | null;
   resolved_at: string | null;
@@ -111,6 +114,33 @@ export interface StaffAnnouncement {
   updated_at: string;
 }
 
+export interface Feedback {
+  id: string;
+  member_id: string;
+  service_type: string;
+  rating: number;
+  comment: string;
+  status: FeedbackStatus;
+  staff_response?: string;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RefundRequest {
+  id: string;
+  customer_id: string;
+  transaction_id: string;
+  amount: number;
+  reason: string;
+  status: RefundStatus;
+  notes?: string;
+  requested_at: string;
+  processed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Extended Database type to include our custom tables
 export type Database = {
   public: {
@@ -141,6 +171,12 @@ export type Database = {
       };
       staff_announcements: {
         Row: StaffAnnouncement;
+      };
+      member_feedback: {
+        Row: Feedback;
+      };
+      refund_requests: {
+        Row: RefundRequest;
       };
     };
   };

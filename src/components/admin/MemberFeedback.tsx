@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -65,7 +64,7 @@ const MemberFeedback: React.FC = () => {
           service_type: fb.service_type,
           rating: fb.rating,
           comment: fb.comment,
-          status: fb.status,
+          status: fb.status as FeedbackStatus,
           staff_response: fb.staff_response,
           submitted_at: fb.submitted_at
         }));
@@ -131,7 +130,7 @@ const MemberFeedback: React.FC = () => {
       const { error } = await supabase
         .from('member_feedback')
         .update({ 
-          status: 'responded', 
+          status: 'responded' as FeedbackStatus, 
           staff_response: responseText,
           updated_at: new Date().toISOString()
         })
@@ -144,7 +143,7 @@ const MemberFeedback: React.FC = () => {
         if (item.id === selectedFeedback.id) {
           return {
             ...item,
-            status: 'responded',
+            status: 'responded' as FeedbackStatus,
             staff_response: responseText
           };
         }
