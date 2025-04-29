@@ -26,7 +26,12 @@ import NotFound from "@/pages/NotFound";
 
 // New page imports
 import UserManagement from "@/pages/admin/UserManagement";
+import StaffManagement from "@/pages/admin/StaffManagement";
+import MaintenanceManagement from "@/pages/admin/MaintenanceManagement";
+import AnalyticsAndReports from "@/pages/admin/AnalyticsAndReports";
+import MembershipManagement from "@/pages/admin/MembershipManagement";
 import FinancialDashboard from "@/pages/admin/FinancialDashboard";
+import TransactionHistory from "@/pages/TransactionHistory";
 import Payment from "@/pages/Payment";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 
@@ -63,11 +68,13 @@ const App = () => (
               <Route path="/member" element={<MemberLanding />} />
               <Route path="/book-activity" element={<BookActivity />} />
               <Route path="/my-bookings" element={<MyBookings />} />
+              <Route path="/transactions" element={<TransactionHistory />} />
             </Route>
             
             {/* Staff routes */}
             <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
               <Route path="/staff" element={<StaffLanding />} />
+              <Route path="/staff/maintenance" element={<MaintenanceManagement />} />
             </Route>
             
             {/* Admin routes */}
@@ -75,6 +82,10 @@ const App = () => (
               <Route path="/admin" element={<AdminLanding />} />
               <Route path="/admin/bookings" element={<AdminBookings />} />
               <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/staff" element={<StaffManagement />} />
+              <Route path="/admin/maintenance" element={<MaintenanceManagement />} />
+              <Route path="/admin/analytics" element={<AnalyticsAndReports />} />
+              <Route path="/admin/memberships" element={<MembershipManagement />} />
               <Route path="/admin/financial" element={<FinancialDashboard />} />
             </Route>
             
