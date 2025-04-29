@@ -138,7 +138,7 @@ const RefundRequestHandler: React.FC = () => {
       if (request.id === selectedRequest.id) {
         return {
           ...request,
-          status: reviewAction === 'approve' ? 'approved' : 'rejected',
+          status: reviewAction === 'approve' ? 'approved' as RefundStatus : 'rejected' as RefundStatus,
           notes: reviewNotes,
           amount: reviewAction === 'approve' && partialRefundAmount 
             ? parseFloat(partialRefundAmount) 
@@ -163,7 +163,7 @@ const RefundRequestHandler: React.FC = () => {
       if (request.id === requestId && request.status === 'approved') {
         return {
           ...request,
-          status: 'processed',
+          status: 'processed' as RefundStatus,
           notes: `${request.notes}\nProcessed on ${format(new Date(), 'yyyy-MM-dd')}`
         };
       }

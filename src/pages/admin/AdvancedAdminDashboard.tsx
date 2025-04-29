@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,6 +13,7 @@ import SearchSortTable from '@/components/admin/SearchSortTable';
 import { useData } from '@/contexts/DataContext';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Download, ChartBar } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface Member {
   id: string;
@@ -128,7 +128,12 @@ const AdvancedAdminDashboard = () => {
     }
   };
   
-  const memberColumns = [
+  const memberColumns: {
+    key: keyof Member;
+    header: string;
+    width?: string;
+    render?: (value: any, row: Member) => ReactNode;
+  }[] = [
     { key: 'name', header: 'Name', width: '20%' },
     { key: 'email', header: 'Email', width: '20%' },
     { key: 'membershipType', header: 'Membership' },
