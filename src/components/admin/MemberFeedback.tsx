@@ -36,7 +36,7 @@ const mockFeedback: Feedback[] = [
     memberName: 'Alex Johnson',
     serviceType: 'Yoga Class',
     rating: 5,
-    comment: 'Excellent instructor! The class was challenging but enjoyable. I'd definitely recommend it to others.',
+    comment: "Excellent instructor! The class was challenging but enjoyable. I'd definitely recommend it to others.",
     submittedAt: '2025-04-28T10:30:00',
     status: 'new'
   },
@@ -46,7 +46,7 @@ const mockFeedback: Feedback[] = [
     memberName: 'Maria Garcia',
     serviceType: 'Personal Training',
     rating: 2,
-    comment: 'The trainer was late and seemed unprepared. I didn't feel like I got my money's worth from this session.',
+    comment: "The trainer was late and seemed unprepared. I didn't feel like I got my money's worth from this session.",
     submittedAt: '2025-04-27T15:45:00',
     status: 'flagged'
   },
@@ -59,7 +59,7 @@ const mockFeedback: Feedback[] = [
     comment: 'The pool was clean but too crowded. It was difficult to swim laps with so many people.',
     submittedAt: '2025-04-27T09:15:00',
     status: 'responded',
-    staffResponse: 'Thank you for your feedback. We're reviewing our pool capacity limits and considering implementing designated lap swimming times.'
+    staffResponse: "Thank you for your feedback. We're reviewing our pool capacity limits and considering implementing designated lap swimming times."
   },
   {
     id: 'fb-004',
