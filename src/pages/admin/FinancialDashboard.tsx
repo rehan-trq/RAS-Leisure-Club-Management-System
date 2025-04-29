@@ -3,6 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useData } from '@/contexts/DataContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import FineCalculator from '@/components/admin/FineCalculator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import RefundRequestHandler from '@/components/admin/RefundRequestHandler';
 
 const FinancialDashboard = () => {
   const { bookings } = useData();
@@ -71,6 +74,21 @@ const FinancialDashboard = () => {
           </div>
         </CardContent>
       </Card>
+      
+      <Tabs defaultValue="fines" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="fines">Fine Management</TabsTrigger>
+          <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="fines">
+          <FineCalculator />
+        </TabsContent>
+        
+        <TabsContent value="refunds">
+          <RefundRequestHandler />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -34,6 +34,7 @@ import FinancialDashboard from "@/pages/admin/FinancialDashboard";
 import TransactionHistory from "@/pages/TransactionHistory";
 import Payment from "@/pages/Payment";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import AdvancedAdminDashboard from "@/pages/admin/AdvancedAdminDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/admin/analytics" element={<AnalyticsAndReports />} />
               <Route path="/admin/memberships" element={<MembershipManagement />} />
               <Route path="/admin/financial" element={<FinancialDashboard />} />
+              <Route path="/admin/advanced" element={<AdvancedAdminDashboard />} />
             </Route>
             
             {/* 404 route */}

@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, ChartBar, Wrench, Badge, Wallet } from "lucide-react";
+import { Calendar, Users, ChartBar, Wrench, Badge, Wallet, Star, MessageSquare } from "lucide-react";
 
 export const QuickActions = () => {
   return (
@@ -46,6 +46,12 @@ export const QuickActions = () => {
           <Button className="w-full justify-start" variant="outline">
             <Wallet className="mr-2 h-4 w-4" />
             Financial Dashboard
+          </Button>
+        </Link>
+        <Link to="/admin/advanced">
+          <Button className="w-full justify-start" variant="outline">
+            <Star className="mr-2 h-4 w-4" />
+            Advanced Dashboard
           </Button>
         </Link>
       </CardContent>
