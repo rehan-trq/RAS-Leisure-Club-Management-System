@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import type { Profile } from '@/types/database';
 
 export type UserRole = 'member' | 'staff' | 'admin';
 
@@ -57,13 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
             
+            const profileData = profile as Profile;
+            
             const authUser = {
               id: session.user.id,
               email: session.user.email!,
-              full_name: profile?.full_name,
-              name: profile?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-              role: profile?.role || 'member',
-              avatar_url: profile?.avatar_url
+              full_name: profileData?.full_name,
+              name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
+              role: profileData?.role || 'member',
+              avatar_url: profileData?.avatar_url
             };
             
             setUser(authUser);
@@ -100,13 +103,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
           
+          const profileData = profile as Profile;
+          
           const authUser = {
             id: session.user.id,
             email: session.user.email!,
-            full_name: profile?.full_name,
-            name: profile?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-            role: profile?.role || 'member',
-            avatar_url: profile?.avatar_url
+            full_name: profileData?.full_name,
+            name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
+            role: profileData?.role || 'member',
+            avatar_url: profileData?.avatar_url
           };
           
           setUser(authUser);
@@ -254,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({
           full_name: data.full_name,
           avatar_url: data.avatar_url,
-        })
+        } as any)
         .eq('id', user.id);
 
       if (error) throw error;

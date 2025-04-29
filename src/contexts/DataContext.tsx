@@ -65,7 +65,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mutationFn: async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>) => {
       const { error } = await supabase
         .from('bookings')
-        .insert([booking]);
+        .insert([booking as any]);
       
       if (error) throw error;
     },
@@ -83,7 +83,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mutationFn: async ({ id, status }: { id: string; status: Booking['status'] }) => {
       const { error } = await supabase
         .from('bookings')
-        .update({ status })
+        .update({ status } as any)
         .eq('id', id);
       
       if (error) throw error;
@@ -116,7 +116,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mutationFn: async (request: Omit<MaintenanceRequest, 'id' | 'created_at' | 'updated_at' | 'resolved_at'>) => {
       const { error } = await supabase
         .from('maintenance_requests')
-        .insert([request]);
+        .insert([request as any]);
       
       if (error) throw error;
     },
@@ -137,7 +137,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({ 
           status,
           resolved_at: status === 'resolved' ? new Date().toISOString() : null 
-        })
+        } as any)
         .eq('id', id);
       
       if (error) throw error;
@@ -170,7 +170,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mutationFn: async (announcement: Omit<Announcement, 'id' | 'created_at' | 'updated_at'>) => {
       const { error } = await supabase
         .from('announcements')
-        .insert([announcement]);
+        .insert([announcement as any]);
       
       if (error) throw error;
     },
