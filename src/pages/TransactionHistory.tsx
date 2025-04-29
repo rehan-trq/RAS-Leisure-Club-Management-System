@@ -199,13 +199,15 @@ const TransactionHistory = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <div className="absolute left-3 top-3 text-gray-400">
+                <Search className="h-4 w-4" />
+              </div>
               <Input
                 placeholder="Search transactions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
-                icon={<Search className="h-4 w-4" />}
+                className="w-full pl-10"
               />
             </div>
             
