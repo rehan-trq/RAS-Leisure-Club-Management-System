@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -11,87 +11,76 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Search, Filter, Star, MessageSquare, Clock, CheckCheck, X 
+  Search, Filter, Star, MessageSquare, Clock, X 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+type FeedbackStatus = 'new' | 'flagged' | 'responded' | 'archived';
 
 interface Feedback {
   id: string;
-  memberId: string;
-  memberName: string;
-  serviceType: string;
+  member_id: string;
+  memberName?: string; // For UI display
+  service_type: string;
   rating: number;
   comment: string;
-  submittedAt: string;
-  status: 'new' | 'flagged' | 'responded' | 'archived';
-  response?: string;
-  staffResponse?: string;
+  submitted_at: string;
+  status: FeedbackStatus;
+  staff_response?: string;
 }
 
-// Mock data
-const mockFeedback: Feedback[] = [
-  {
-    id: 'fb-001',
-    memberId: 'mem-123',
-    memberName: 'Alex Johnson',
-    serviceType: 'Yoga Class',
-    rating: 5,
-    comment: "Excellent instructor! The class was challenging but enjoyable. I'd definitely recommend it to others.",
-    submittedAt: '2025-04-28T10:30:00',
-    status: 'new'
-  },
-  {
-    id: 'fb-002',
-    memberId: 'mem-456',
-    memberName: 'Maria Garcia',
-    serviceType: 'Personal Training',
-    rating: 2,
-    comment: "The trainer was late and seemed unprepared. I didn't feel like I got my money's worth from this session.",
-    submittedAt: '2025-04-27T15:45:00',
-    status: 'flagged'
-  },
-  {
-    id: 'fb-003',
-    memberId: 'mem-789',
-    memberName: 'James Wilson',
-    serviceType: 'Swimming Pool',
-    rating: 3,
-    comment: 'The pool was clean but too crowded. It was difficult to swim laps with so many people.',
-    submittedAt: '2025-04-27T09:15:00',
-    status: 'responded',
-    staffResponse: "Thank you for your feedback. We're reviewing our pool capacity limits and considering implementing designated lap swimming times."
-  },
-  {
-    id: 'fb-004',
-    memberId: 'mem-101',
-    memberName: 'Sarah Miller',
-    serviceType: 'Cardio Equipment',
-    rating: 4,
-    comment: 'Most of the machines are great and well-maintained. A couple of treadmills were out of order though.',
-    submittedAt: '2025-04-26T14:00:00',
-    status: 'responded',
-    staffResponse: 'Thank you for letting us know. Our maintenance team has been informed and the treadmills should be fixed within 48 hours.'
-  },
-  {
-    id: 'fb-005',
-    memberId: 'mem-202',
-    memberName: 'Robert Chen',
-    serviceType: 'Locker Rooms',
-    rating: 1,
-    comment: 'The locker rooms were not clean at all. Several showers were clogged and there were no clean towels.',
-    submittedAt: '2025-04-26T18:30:00',
-    status: 'new'
-  }
-];
-
 const MemberFeedback: React.FC = () => {
-  const [feedback, setFeedback] = useState<Feedback[]>(mockFeedback);
+  const { isAdmin, isStaff } = useAuth();
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [responseText, setResponseText] = useState('');
+
+  // Fetch feedback from database
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('member_feedback')
+          .select(`
+            *,
+            profiles:member_id(full_name)
+          `)
+          .order('submitted_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Format the data to match our interface
+        const formattedFeedback: Feedback[] = data.map(fb => ({
+          id: fb.id,
+          member_id: fb.member_id,
+          memberName: fb.profiles?.full_name || 'Unknown User',
+          service_type: fb.service_type,
+          rating: fb.rating,
+          comment: fb.comment,
+          status: fb.status,
+          staff_response: fb.staff_response,
+          submitted_at: fb.submitted_at
+        }));
+
+        setFeedback(formattedFeedback);
+      } catch (error) {
+        console.error("Error fetching feedback:", error);
+        toast.error("Failed to load member feedback");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedback();
+  }, []);
 
   // Filter feedback based on search term and filters
   const filteredFeedback = feedback.filter(item => {
@@ -112,8 +101,8 @@ const MemberFeedback: React.FC = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
-        item.memberName.toLowerCase().includes(searchLower) ||
-        item.serviceType.toLowerCase().includes(searchLower) ||
+        (item.memberName?.toLowerCase().includes(searchLower) || false) ||
+        item.service_type.toLowerCase().includes(searchLower) ||
         item.comment.toLowerCase().includes(searchLower)
       );
     }
@@ -125,47 +114,82 @@ const MemberFeedback: React.FC = () => {
     if (a.status !== 'new' && b.status === 'new') return 1;
     if (a.status === 'flagged' && b.status !== 'flagged') return -1;
     if (a.status !== 'flagged' && b.status === 'flagged') return 1;
-    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+    return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
   });
 
   const openDetail = (item: Feedback) => {
     setSelectedFeedback(item);
-    setResponseText(item.staffResponse || '');
+    setResponseText(item.staff_response || '');
     setIsDetailOpen(true);
   };
 
-  const handleResponseSubmit = () => {
+  const handleResponseSubmit = async () => {
     if (!selectedFeedback) return;
     
-    const updatedFeedback = feedback.map(item => {
-      if (item.id === selectedFeedback.id) {
-        return {
-          ...item,
-          status: 'responded' as const,
-          staffResponse: responseText
-        };
-      }
-      return item;
-    });
-    
-    setFeedback(updatedFeedback);
-    setIsDetailOpen(false);
-    toast.success('Response submitted successfully');
+    try {
+      // Update the feedback in the database
+      const { error } = await supabase
+        .from('member_feedback')
+        .update({ 
+          status: 'responded', 
+          staff_response: responseText,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedFeedback.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedFeedback = feedback.map(item => {
+        if (item.id === selectedFeedback.id) {
+          return {
+            ...item,
+            status: 'responded',
+            staff_response: responseText
+          };
+        }
+        return item;
+      });
+      
+      setFeedback(updatedFeedback);
+      setIsDetailOpen(false);
+      toast.success('Response submitted successfully');
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+      toast.error("Failed to submit response");
+    }
   };
 
-  const handleStatusChange = (id: string, newStatus: 'new' | 'flagged' | 'responded' | 'archived') => {
-    const updatedFeedback = feedback.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          status: newStatus
-        };
-      }
-      return item;
-    });
-    
-    setFeedback(updatedFeedback);
-    toast.success(`Feedback marked as ${newStatus}`);
+  const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
+    try {
+      // Update the feedback status in the database
+      const { error } = await supabase
+        .from('member_feedback')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedFeedback = feedback.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            status: newStatus
+          };
+        }
+        return item;
+      });
+      
+      setFeedback(updatedFeedback);
+      toast.success(`Feedback marked as ${newStatus}`);
+    } catch (error) {
+      console.error("Error updating feedback status:", error);
+      toast.error("Failed to update feedback status");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -205,6 +229,16 @@ const MemberFeedback: React.FC = () => {
         return <Badge>Unknown</Badge>;
     }
   };
+
+  if (!isAdmin && !isStaff) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center">You don't have permission to access this feature.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -267,7 +301,11 @@ const MemberFeedback: React.FC = () => {
             </div>
           </div>
 
-          {filteredFeedback.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <p>Loading feedback data...</p>
+            </div>
+          ) : filteredFeedback.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No feedback matches your filters</p>
             </div>
@@ -289,16 +327,16 @@ const MemberFeedback: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="font-medium">{item.memberName}</div>
-                      <div className="text-xs text-muted-foreground">{item.memberId}</div>
+                      <div className="text-xs text-muted-foreground">{item.member_id.substring(0, 8)}</div>
                     </TableCell>
-                    <TableCell>{item.serviceType}</TableCell>
+                    <TableCell>{item.service_type}</TableCell>
                     <TableCell>{renderStars(item.rating)}</TableCell>
                     <TableCell className="max-w-xs">
                       <div className="truncate" title={item.comment}>
                         {item.comment}
                       </div>
                     </TableCell>
-                    <TableCell>{formatDate(item.submittedAt)}</TableCell>
+                    <TableCell>{formatDate(item.submitted_at)}</TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
@@ -347,7 +385,7 @@ const MemberFeedback: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Feedback Details</DialogTitle>
             <DialogDescription>
-              From {selectedFeedback?.memberName} on {selectedFeedback?.serviceType}
+              From {selectedFeedback?.memberName} on {selectedFeedback?.service_type}
             </DialogDescription>
           </DialogHeader>
 
@@ -371,15 +409,15 @@ const MemberFeedback: React.FC = () => {
                   <p className="text-sm">{selectedFeedback.comment}</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Submitted on {formatDate(selectedFeedback.submittedAt)}
+                  Submitted on {formatDate(selectedFeedback.submitted_at)}
                 </p>
               </div>
               
-              {selectedFeedback.staffResponse && (
+              {selectedFeedback.staff_response && (
                 <div>
                   <h4 className="text-sm font-medium mb-1">Staff Response</h4>
                   <div className="bg-muted p-3 rounded-md">
-                    <p className="text-sm">{selectedFeedback.staffResponse}</p>
+                    <p className="text-sm">{selectedFeedback.staff_response}</p>
                   </div>
                 </div>
               )}

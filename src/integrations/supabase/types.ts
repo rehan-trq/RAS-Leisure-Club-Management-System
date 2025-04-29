@@ -9,7 +9,187 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      maintenance_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          facility: string
+          id: string
+          issue: string
+          priority: Database["public"]["Enums"]["maintenance_priority"]
+          reported_by: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["maintenance_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          facility: string
+          id?: string
+          issue: string
+          priority?: Database["public"]["Enums"]["maintenance_priority"]
+          reported_by?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          facility?: string
+          id?: string
+          issue?: string
+          priority?: Database["public"]["Enums"]["maintenance_priority"]
+          reported_by?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          member_id: string | null
+          rating: number
+          service_type: string
+          staff_response: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          rating: number
+          service_type: string
+          staff_response?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          member_id?: string | null
+          rating?: number
+          service_type?: string
+          staff_response?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_feedback_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      refund_requests: {
+        Row: {
+          amount: number
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          notes: string | null
+          processed_at: string | null
+          reason: string
+          requested_at: string | null
+          status: Database["public"]["Enums"]["refund_status"]
+          transaction_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          reason: string
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["refund_status"]
+          transaction_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          reason?: string
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["refund_status"]
+          transaction_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,6 +198,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      feedback_status: "new" | "flagged" | "responded" | "archived"
+      maintenance_priority: "low" | "medium" | "high"
+      maintenance_status: "pending" | "in_progress" | "resolved"
+      refund_status: "pending" | "approved" | "rejected" | "processed"
       user_role: "member" | "staff" | "admin"
     }
     CompositeTypes: {
@@ -134,6 +318,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      feedback_status: ["new", "flagged", "responded", "archived"],
+      maintenance_priority: ["low", "medium", "high"],
+      maintenance_status: ["pending", "in_progress", "resolved"],
+      refund_status: ["pending", "approved", "rejected", "processed"],
       user_role: ["member", "staff", "admin"],
     },
   },

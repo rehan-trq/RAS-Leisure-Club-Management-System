@@ -1,29 +1,66 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useData } from '@/contexts/DataContext';
-import { Wrench, ClipboardList, Calendar, Users, Bell } from 'lucide-react';
+import { Wrench, ClipboardList, Calendar, Users, Bell, ChartBar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface MaintenanceRequest {
+  id: string;
+  facility: string;
+  issue: string;
+  priority: string;
+  status: string;
+}
 
 const StaffLanding = () => {
   const { user, logout } = useAuth();
-  const { maintenanceRequests, isLoadingMaintenance, updateMaintenanceStatus } = useData();
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const pendingMaintenanceRequests = maintenanceRequests.filter(
-    request => request.status === 'pending'
-  ).slice(0, 3);
-
-  const todayBookings = 8;
-  const pendingTasks = pendingMaintenanceRequests.length;
+  useEffect(() => {
+    const fetchMaintenanceRequests = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(3);
+          
+        if (error) throw error;
+        setMaintenanceRequests(data || []);
+      } catch (error) {
+        console.error('Error fetching maintenance requests:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMaintenanceRequests();
+  }, []);
 
   const handleResolveTask = async (id: string) => {
     try {
-      await updateMaintenanceStatus(id, 'resolved');
+      const { error } = await supabase
+        .from('maintenance_requests')
+        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setMaintenanceRequests(prev => prev.filter(request => request.id !== id));
     } catch (error) {
       console.error('Error resolving task:', error);
     }
   };
+
+  // Count of maintenance requests
+  const pendingTasks = maintenanceRequests.length;
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-10">
@@ -47,7 +84,7 @@ const StaffLanding = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{todayBookings}</p>
+              <p className="text-3xl font-bold">8</p>
               <p className="text-sm text-muted-foreground">Activities scheduled for today</p>
             </CardContent>
             <CardFooter>
@@ -118,16 +155,16 @@ const StaffLanding = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {isLoadingMaintenance ? (
+                      {isLoading ? (
                         <tr>
                           <td colSpan={4} className="py-4 text-center">Loading...</td>
                         </tr>
-                      ) : pendingMaintenanceRequests.length === 0 ? (
+                      ) : maintenanceRequests.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="py-4 text-center">No pending maintenance requests</td>
                         </tr>
                       ) : (
-                        pendingMaintenanceRequests.map((request) => (
+                        maintenanceRequests.map((request) => (
                           <tr key={request.id} className="border-b">
                             <td className="py-3 px-4">{request.facility}</td>
                             <td className="py-3 px-4">{request.issue}</td>
@@ -185,14 +222,16 @@ const StaffLanding = () => {
                   <Users className="mr-2 h-4 w-4" />
                   View Member Check-ins
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Update Activity Schedule
-                </Button>
                 <Link to="/admin/bookings" className="block">
                   <Button className="w-full justify-start" variant="outline">
                     <Calendar className="mr-2 h-4 w-4" />
                     Manage Bookings
+                  </Button>
+                </Link>
+                <Link to="/admin/advanced" className="block">
+                  <Button className="w-full justify-start" variant="outline">
+                    <ChartBar className="mr-2 h-4 w-4" />
+                    Advanced Dashboard
                   </Button>
                 </Link>
               </CardContent>

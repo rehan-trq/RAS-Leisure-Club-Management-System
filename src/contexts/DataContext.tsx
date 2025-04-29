@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Service, Booking, MaintenanceRequest, Announcement } from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DataContextType {
   // Services
@@ -32,33 +33,46 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Services queries
   const { data: services = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['services'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data as Service[];
-    }
+      try {
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .order('name');
+        
+        if (error) throw error;
+        return data as Service[];
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        return [];
+      }
+    },
+    enabled: !!user
   });
 
   // Bookings queries
   const { data: bookings = [], isLoading: isLoadingBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (error) throw error;
-      return data as Booking[];
-    }
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (error) throw error;
+        return data as Booking[];
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+        return [];
+      }
+    },
+    enabled: !!user
   });
 
   const createBookingMutation = useMutation({
@@ -102,21 +116,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: maintenanceRequests = [], isLoading: isLoadingMaintenance } = useQuery({
     queryKey: ['maintenance'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as MaintenanceRequest[];
-    }
+      try {
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data as MaintenanceRequest[];
+      } catch (error) {
+        console.error("Error fetching maintenance requests:", error);
+        return [];
+      }
+    },
+    enabled: !!user
   });
 
   const createMaintenanceRequestMutation = useMutation({
     mutationFn: async (request: Omit<MaintenanceRequest, 'id' | 'created_at' | 'updated_at' | 'resolved_at'>) => {
+      // Add the current user as the reporter if not specified
+      const requestWithUser = {
+        ...request,
+        reported_by: request.reported_by || user?.id
+      };
+
       const { error } = await supabase
         .from('maintenance_requests')
-        .insert([request as any]);
+        .insert([requestWithUser as any]);
       
       if (error) throw error;
     },
@@ -132,12 +158,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateMaintenanceStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: MaintenanceRequest['status'] }) => {
+      const updates = { 
+        status,
+        resolved_at: status === 'resolved' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('maintenance_requests')
-        .update({ 
-          status,
-          resolved_at: status === 'resolved' ? new Date().toISOString() : null 
-        } as any)
+        .update(updates as any)
         .eq('id', id);
       
       if (error) throw error;
@@ -156,14 +185,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: announcements = [], isLoading: isLoadingAnnouncements } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Announcement[];
-    }
+      try {
+        const { data, error } = await supabase
+          .from('announcements')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data as Announcement[];
+      } catch (error) {
+        console.error("Error fetching announcements:", error);
+        return [];
+      }
+    },
+    enabled: !!user
   });
 
   const createAnnouncementMutation = useMutation({

@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: session.user.email!,
               full_name: profileData?.full_name,
               name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-              role: profileData?.role || 'member',
+              role: (profileData?.role as UserRole) || 'member',
               avatar_url: profileData?.avatar_url
             };
             
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: session.user.email!,
             full_name: profileData?.full_name,
             name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-            role: profileData?.role || 'member',
+            role: (profileData?.role as UserRole) || 'member',
             avatar_url: profileData?.avatar_url
           };
           

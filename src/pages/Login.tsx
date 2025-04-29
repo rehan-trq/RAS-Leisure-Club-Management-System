@@ -8,12 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
 
 const Login = () => {
-  // Dummy function since authentication is disabled
-  const handleSubmit = async (email: string, password: string) => {
-    console.log('Login disabled, use quick access buttons instead');
-    return Promise.resolve();
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary p-4 relative">
       <div className="blur-circle w-[600px] h-[600px] -top-64 right-16 bg-primary/10 animate-spin-slow"></div>
@@ -36,11 +30,11 @@ const Login = () => {
             <Alert className="mb-4 bg-blue-50 border-blue-200">
               <InfoIcon className="h-4 w-4 text-blue-500" />
               <AlertDescription className="text-blue-700 font-medium">
-                Authentication is disabled! Use the quick access buttons below to access different roles.
+                Use the quick access buttons below to log in with demo accounts for different roles.
               </AlertDescription>
             </Alert>
             
-            <LoginForm onSubmit={handleSubmit} loading={false} />
+            <LoginForm />
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 text-center">
             <p className="text-sm text-muted-foreground">

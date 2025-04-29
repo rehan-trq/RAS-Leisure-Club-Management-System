@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,11 @@ import RefundRequestHandler from '@/components/admin/RefundRequestHandler';
 import MemberFeedback from '@/components/admin/MemberFeedback';
 import SearchSortTable from '@/components/admin/SearchSortTable';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Download, ChartBar } from 'lucide-react';
 import { ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Member {
   id: string;
@@ -25,80 +28,52 @@ interface Member {
   lastVisit: string;
 }
 
-// Mock data for demonstration
-const mockMembers: Member[] = [
-  {
-    id: 'mem-001',
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    membershipType: 'Premium',
-    status: 'Active',
-    joinDate: '2024-10-15',
-    lastVisit: '2025-04-28',
-  },
-  {
-    id: 'mem-002',
-    name: 'Sarah Johnson',
-    email: 'sarah.j@example.com',
-    membershipType: 'Standard',
-    status: 'Active',
-    joinDate: '2024-11-03',
-    lastVisit: '2025-04-26',
-  },
-  {
-    id: 'mem-003',
-    name: 'Michael Brown',
-    email: 'michael.b@example.com',
-    membershipType: 'Premium',
-    status: 'Suspended',
-    joinDate: '2024-08-22',
-    lastVisit: '2025-04-18',
-  },
-  {
-    id: 'mem-004',
-    name: 'Emily Wilson',
-    email: 'emily.w@example.com',
-    membershipType: 'Standard',
-    status: 'Active',
-    joinDate: '2025-01-10',
-    lastVisit: '2025-04-27',
-  },
-  {
-    id: 'mem-005',
-    name: 'David Lee',
-    email: 'david.l@example.com',
-    membershipType: 'Premium',
-    status: 'Active',
-    joinDate: '2024-12-05',
-    lastVisit: '2025-04-28',
-  },
-  {
-    id: 'mem-006',
-    name: 'Jennifer Garcia',
-    email: 'jennifer.g@example.com',
-    membershipType: 'Standard',
-    status: 'Inactive',
-    joinDate: '2024-09-18',
-    lastVisit: '2025-03-15',
-  },
-  {
-    id: 'mem-007',
-    name: 'Robert Martinez',
-    email: 'robert.m@example.com',
-    membershipType: 'Premium',
-    status: 'Active',
-    joinDate: '2025-02-14',
-    lastVisit: '2025-04-25',
-  }
-];
-
 const AdvancedAdminDashboard = () => {
   const { bookings } = useData();
+  const { isAdmin, isStaff } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch member profiles
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'member')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        // Format the data to match our interface
+        const formattedMembers: Member[] = (profiles || []).map(profile => ({
+          id: profile.id,
+          name: profile.full_name || 'Unknown',
+          email: profile.email || 'No email',
+          membershipType: 'Standard', // Default value since we don't have this in our database yet
+          status: 'Active', // Default value
+          joinDate: profile.created_at ? new Date(profile.created_at).toISOString().split('T')[0] : 'Unknown',
+          lastVisit: new Date().toISOString().split('T')[0] // Placeholder
+        }));
+        
+        setMembers(formattedMembers);
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMembers();
+  }, []);
   
   // Demo stats for the dashboard
   const systemStats = {
-    totalMembers: 452,
+    totalMembers: members.length,
     activeBookings: bookings.length,
     revenue: 28750,
     staffMembers: 12
@@ -151,11 +126,23 @@ const AdvancedAdminDashboard = () => {
     // Navigate to member details or open a modal
   };
 
+  if (!isAdmin && !isStaff) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center">You don't have permission to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          <h1 className="text-3xl font-serif font-bold mb-2">Admin Dashboard</h1>
+          <h1 className="text-3xl font-serif font-bold mb-2">Advanced Dashboard</h1>
           <p className="text-muted-foreground">Advanced management tools and analytics</p>
         </div>
         
@@ -223,14 +210,18 @@ const AdvancedAdminDashboard = () => {
               <CardDescription>Browse and manage facility members</CardDescription>
             </CardHeader>
             <CardContent>
-              <SearchSortTable 
-                data={mockMembers} 
-                columns={memberColumns} 
-                defaultSortColumn="name"
-                defaultSortDirection="asc"
-                onRowClick={handleMemberClick}
-                emptyMessage="No members found matching your search criteria"
-              />
+              {loading ? (
+                <div className="text-center py-6">Loading members...</div>
+              ) : (
+                <SearchSortTable 
+                  data={members} 
+                  columns={memberColumns} 
+                  defaultSortColumn="name"
+                  defaultSortDirection="asc"
+                  onRowClick={handleMemberClick}
+                  emptyMessage="No members found matching your search criteria"
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -8,18 +8,14 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-interface LoginFormProps {
-  onSubmit: (email: string, password: string) => Promise<void>;
-  loading: boolean;
-}
-
-const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -27,6 +23,9 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
 
     if (!email) {
       newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
       isValid = false;
     }
 
@@ -45,50 +44,43 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
     
     if (validateForm()) {
       try {
+        setLoading(true);
         const trimmedEmail = email.trim();
         console.log('Submitting login with trimmed email:', trimmedEmail);
-        await onSubmit(trimmedEmail, password);
+        await login(trimmedEmail, password);
       } catch (error: any) {
         console.error('Login form error:', error);
+      } finally {
+        setLoading(false);
       }
     } else {
       console.log('Form validation failed');
     }
   };
 
-  // Login with one of the demo accounts - bypassing authentication
-  const loginWithDemoAccount = (role: string) => {
-    console.log(`Direct access as ${role} role`);
+  // Login with one of the demo accounts
+  const loginWithDemoAccount = async (role: string) => {
+    console.log(`Login as ${role} role`);
     
     // Set the form fields for visual feedback
-    if (role === 'member') {
-      setEmail('member@example.com');
-    } else if (role === 'staff') {
-      setEmail('staff@example.com'); 
-    } else if (role === 'admin') {
-      setEmail('admin@example.com');
+    const demoEmail = `${role}@example.com`;
+    const demoPassword = 'password123';
+    
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    
+    try {
+      setLoading(true);
+      toast.loading(`Logging in as ${role}...`);
+      
+      // Attempt to login with the demo account
+      await login(demoEmail, demoPassword);
+    } catch (error) {
+      console.error('Demo login error:', error);
+      toast.error(`Failed to login as ${role}`);
+    } finally {
+      setLoading(false);
     }
-    
-    setPassword('password123');
-    
-    toast.success(`Accessing as ${role}...`);
-    
-    // Direct navigation based on role
-    setTimeout(() => {
-      switch(role) {
-        case 'member':
-          navigate('/member', { replace: true });
-          break;
-        case 'staff':
-          navigate('/staff', { replace: true });
-          break;
-        case 'admin':
-          navigate('/admin', { replace: true });
-          break;
-        default:
-          navigate('/', { replace: true });
-      }
-    }, 500); // Small delay to show the toast
   };
 
   return (
@@ -105,7 +97,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={parentLoading || loading}
+            disabled={loading}
           />
           {errors.email && (
             <div className="text-sm text-destructive mt-1">{errors.email}</div>
@@ -132,7 +124,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={parentLoading || loading}
+              disabled={loading}
             />
             <button
               type="button"
@@ -155,6 +147,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             type="button" 
             onClick={() => loginWithDemoAccount('member')} 
             className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+            disabled={loading}
           >
             Member
           </button>
@@ -162,6 +155,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             type="button" 
             onClick={() => loginWithDemoAccount('staff')} 
             className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+            disabled={loading}
           >
             Staff
           </button>
@@ -169,6 +163,7 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
             type="button" 
             onClick={() => loginWithDemoAccount('admin')} 
             className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200"
+            disabled={loading}
           >
             Admin
           </button>
@@ -180,9 +175,9 @@ const LoginForm = ({ onSubmit, loading: parentLoading }: LoginFormProps) => {
         size="lg"
         className="w-full"
         type="submit"
-        disabled={parentLoading || loading}
+        disabled={loading}
       >
-        {parentLoading || loading ? 'Logging in...' : 'Login'}
+        {loading ? 'Logging in...' : 'Login'}
       </AnimatedButton>
     </form>
   );
