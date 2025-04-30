@@ -6,55 +6,29 @@ import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { login } = useAuth();
-
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-    let isValid = true;
-
-    if (!email) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-      isValid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login form submission with:', { email });
     
-    if (validateForm()) {
-      try {
-        setLoading(true);
-        const trimmedEmail = email.trim();
-        console.log('Submitting login with trimmed email:', trimmedEmail);
-        await login(trimmedEmail, password);
-      } catch (error: any) {
-        console.error('Login form error:', error);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      console.log('Form validation failed');
+    if (!email || !password) {
+      toast.error('Please provide both email and password');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await login(email.trim(), password);
+    } catch (error: any) {
+      console.error('Login form error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,7 +51,6 @@ const LoginForm = () => {
       await login(demoEmail, demoPassword);
     } catch (error) {
       console.error('Demo login error:', error);
-      toast.error(`Failed to login as ${role}`);
     } finally {
       setLoading(false);
     }
@@ -93,15 +66,12 @@ const LoginForm = () => {
           <Input
             id="email"
             type="email"
-            className={`form-input ${errors.email ? 'border-destructive focus:ring-destructive/20' : ''}`}
+            className="form-input"
             placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
           />
-          {errors.email && (
-            <div className="text-sm text-destructive mt-1">{errors.email}</div>
-          )}
         </div>
         
         <div className="form-control">
@@ -120,7 +90,7 @@ const LoginForm = () => {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
-              className={`form-input pr-10 ${errors.password ? 'border-destructive focus:ring-destructive/20' : ''}`}
+              className="form-input pr-10"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -134,9 +104,6 @@ const LoginForm = () => {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && (
-            <div className="text-sm text-destructive mt-1">{errors.password}</div>
-          )}
         </div>
       </div>
       

@@ -149,61 +149,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting login with:', email);
       
-      // First try normal login
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (!error) {
-        console.log('Login successful with existing account');
-        toast.success('Successfully logged in!');
-        return;
-      }
-      
-      // If login fails and it's one of our demo accounts, try to create it
-      if (error.message === 'Invalid login credentials' && 
-          ['member@example.com', 'staff@example.com', 'admin@example.com'].includes(email) && 
-          password === 'password123') {
-        
-        console.log(`Creating demo account for ${email}`);
-        
-        // Extract role from email
-        const role = email.split('@')[0] as UserRole;
-        
-        // Sign up the demo account
-        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
-              role: role
+      if (error) {
+        // If login fails and it's one of our demo accounts, try to create it
+        if (error.message === 'Invalid login credentials' && 
+            ['member@example.com', 'staff@example.com', 'admin@example.com'].includes(email) && 
+            password === 'password123') {
+          
+          console.log(`Creating demo account for ${email}`);
+          
+          // Extract role from email
+          const role = email.split('@')[0] as UserRole;
+          
+          // Sign up the demo account
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
+                role: role
+              }
             }
+          });
+
+          if (signUpError) {
+            throw signUpError;
           }
-        });
+          
+          // Try to sign in again after creating the account
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
 
-        if (signUpError) {
-          // If sign up fails too, it might be because the account exists but password is wrong
-          throw signUpError;
+          if (retryError) {
+            throw retryError;
+          }
+          
+          toast.success('Demo account created and logged in!');
+          return;
         }
         
-        // Try to sign in again after creating the account
-        const { error: retryError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (retryError) {
-          throw retryError;
-        }
-        
-        toast.success('Demo account created and logged in!');
-        return;
+        // If it's not a demo account or creation fails, throw the original error
+        throw error;
       }
-      
-      // If it's not a demo account or creation fails, throw the original error
-      throw error;
+
+      toast.success('Successfully logged in!');
     } catch (error: any) {
       console.error('Error logging in:', error);
       toast.error(error.message || 'Failed to log in');
@@ -214,7 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, fullName: string) => {
     try {
       console.log('Attempting signup with:', email, fullName);
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
