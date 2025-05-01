@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,29 +15,16 @@ import { connectToDatabase } from '@/integrations/mongodb/client';
 import RefundRequest from '@/integrations/mongodb/models/RefundRequest';
 import User from '@/integrations/mongodb/models/User';
 import { useAuth } from '@/contexts/AuthContext';
-import type { RefundRequest as RefundRequestType, RefundStatus } from '@/types/database';
+import type { RefundRequest as RefundRequestType } from '@/types/database';
 
-type RefundStatus = 'pending' | 'approved' | 'rejected' | 'processed';
-
-interface RefundRequest {
-  id: string;
-  customer_id: string;
-  customerName?: string; // For UI display
-  transaction_id: string;
-  amount: number;
-  reason: string;
-  status: RefundStatus;
-  notes?: string;
-  requested_at: string;
-  processed_at?: string;
+interface RefundRequestWithUserName extends RefundRequestType {
+  customerName?: string;
 }
 
 const RefundRequestHandler = () => {
   const { isAdmin, isStaff, token } = useAuth();
   const queryClient = useQueryClient();
-  const [requests, setRequests] = useState<RefundRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<RefundRequestWithUserName | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve');
   const [reviewNotes, setReviewNotes] = useState('');
@@ -45,7 +32,7 @@ const RefundRequestHandler = () => {
   const [activeTab, setActiveTab] = useState('pending');
 
   // Fetch refund requests from database
-  const { data: requests = [], isLoading: loading } = useQuery({
+  const { data: requestItems = [], isLoading } = useQuery({
     queryKey: ['refund-requests'],
     queryFn: async () => {
       try {
@@ -64,14 +51,14 @@ const RefundRequestHandler = () => {
         });
         
         // Format the data to match our interface
-        const formattedRequests: RefundRequestType[] = refundData.map(req => ({
+        const formattedRequests: RefundRequestWithUserName[] = refundData.map(req => ({
           id: req._id.toString(),
           customer_id: req.customer_id.toString(),
           customerName: userMap.get(req.customer_id.toString()) || 'Unknown User',
           transaction_id: req.transaction_id,
           amount: req.amount,
           reason: req.reason,
-          status: req.status as RefundStatus,
+          status: req.status,
           notes: req.notes || '',
           requested_at: req.requested_at.toISOString(),
           processed_at: req.processed_at ? req.processed_at.toISOString() : undefined,
@@ -98,14 +85,14 @@ const RefundRequestHandler = () => {
       processed 
     }: { 
       id: string; 
-      status?: RefundStatus; 
+      status?: string; 
       notes?: string;
       amount?: number;
       processed?: boolean;
     }) => {
       await connectToDatabase();
       
-      const updateData: any = {
+      const updateData: {[key: string]: any} = {
         updated_at: new Date()
       };
       
@@ -138,10 +125,10 @@ const RefundRequestHandler = () => {
   });
   
   // Filter requests based on status
-  const pendingRequests = requests.filter(request => request.status === 'pending');
-  const processedRequests = requests.filter(request => request.status === 'approved' || request.status === 'rejected' || request.status === 'processed');
+  const pendingRequests = requestItems.filter(request => request.status === 'pending');
+  const processedRequests = requestItems.filter(request => request.status === 'approved' || request.status === 'rejected' || request.status === 'processed');
 
-  const openReviewDialog = (request: RefundRequest) => {
+  const openReviewDialog = (request: RefundRequestWithUserName) => {
     setSelectedRequest(request);
     setReviewAction('approve');
     setReviewNotes('');
@@ -160,7 +147,7 @@ const RefundRequestHandler = () => {
       
       await updateRefundRequestMutation.mutateAsync({
         id: selectedRequest.id,
-        status: newStatus as RefundStatus,
+        status: newStatus,
         notes: reviewNotes,
         amount: newAmount
       });
@@ -237,7 +224,7 @@ const RefundRequestHandler = () => {
           </TabsList>
           
           <TabsContent value="pending">
-            {loading ? (
+            {isLoading ? (
               <div className="text-center py-6">Loading refund requests...</div>
             ) : pendingRequests.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
@@ -282,7 +269,7 @@ const RefundRequestHandler = () => {
           </TabsContent>
           
           <TabsContent value="processed">
-            {loading ? (
+            {isLoading ? (
               <div className="text-center py-6">Loading refund requests...</div>
             ) : processedRequests.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
@@ -332,118 +319,99 @@ const RefundRequestHandler = () => {
             )}
           </TabsContent>
         </Tabs>
-      </CardContent>
 
-      <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review Refund Request</DialogTitle>
-          </DialogHeader>
-          
-          {selectedRequest && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Customer</Label>
-                  <div>{selectedRequest.customerName}</div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Transaction ID</Label>
-                  <div>{selectedRequest.transaction_id}</div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Amount</Label>
-                  <div>{formatCurrency(selectedRequest.amount)}</div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Date</Label>
-                  <div>{format(new Date(selectedRequest.requested_at), 'MMM dd, yyyy')}</div>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-sm font-medium">Reason for Refund</Label>
-                <div className="mt-1 p-2 bg-muted rounded-md">
-                  {selectedRequest.reason}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Review Action</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="approve"
-                      name="reviewAction"
-                      className="mr-2"
-                      checked={reviewAction === 'approve'}
-                      onChange={() => setReviewAction('approve')}
-                    />
-                    <Label htmlFor="approve">Approve</Label>
+        <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Review Refund Request</DialogTitle>
+            </DialogHeader>
+            
+            {selectedRequest && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Customer</Label>
+                    <div>{selectedRequest.customerName}</div>
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="reject"
-                      name="reviewAction"
-                      className="mr-2"
-                      checked={reviewAction === 'reject'}
-                      onChange={() => setReviewAction('reject')}
-                    />
-                    <Label htmlFor="reject">Reject</Label>
+                  <div>
+                    <Label className="text-sm font-medium">Transaction ID</Label>
+                    <div>{selectedRequest.transaction_id}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Amount</Label>
+                    <div>{formatCurrency(selectedRequest.amount)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Date</Label>
+                    <div>{format(new Date(selectedRequest.requested_at), 'MMM dd, yyyy')}</div>
                   </div>
                 </div>
-              </div>
-              
-              {reviewAction === 'approve' && (
+                
+                <div>
+                  <Label className="text-sm font-medium">Reason for Refund</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md">
+                    {selectedRequest.reason}
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="partialRefund" className="text-sm font-medium">
-                    Refund Amount
-                  </Label>
-                  <Input
-                    id="partialRefund"
-                    value={partialRefundAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (!value || /^\d*\.?\d*$/.test(value)) {
-                        setPartialRefundAmount(value);
-                      }
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Adjust the amount if providing a partial refund
-                  </p>
+                  <div className="flex space-x-4">
+                    <Button 
+                      variant={reviewAction === 'approve' ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => setReviewAction('approve')}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant={reviewAction === 'reject' ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => setReviewAction('reject')}
+                    >
+                      Reject
+                    </Button>
+                  </div>
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="reviewNotes" className="text-sm font-medium">
-                  Notes
-                </Label>
-                <Textarea
-                  id="reviewNotes"
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Add additional notes or reason for decision..."
-                />
+                
+                {reviewAction === 'approve' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Refund Amount</Label>
+                    <Input
+                      type="number"
+                      value={partialRefundAmount}
+                      onChange={(e) => setPartialRefundAmount(e.target.value)}
+                      min={0}
+                      max={selectedRequest.amount}
+                      step={0.01}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      You can adjust the amount for partial refunds.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Notes</Label>
+                  <Textarea
+                    placeholder="Add notes about this decision..."
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsReviewOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleReviewSubmit}>
+                    {reviewAction === 'approve' ? 'Approve Refund' : 'Reject Refund'}
+                  </Button>
+                </DialogFooter>
               </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReviewOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleReviewSubmit}
-              variant={reviewAction === 'approve' ? 'default' : 'destructive'}
-            >
-              {reviewAction === 'approve' ? 'Approve Refund' : 'Reject Refund'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      </CardContent>
     </Card>
   );
 };

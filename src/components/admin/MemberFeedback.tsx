@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -10,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Search, Filter, Star, MessageSquare, Clock, X 
+  Search, Filter, Star, MessageSquare, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,36 +19,24 @@ import { connectToDatabase } from '@/integrations/mongodb/client';
 import Feedback from '@/integrations/mongodb/models/Feedback';
 import User from '@/integrations/mongodb/models/User';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Feedback as FeedbackType, FeedbackStatus } from '@/types/database';
+import type { Feedback as FeedbackType } from '@/types/database';
 
-type FeedbackStatus = 'new' | 'flagged' | 'responded' | 'archived';
-
-interface Feedback {
-  id: string;
-  member_id: string;
-  memberName?: string; // For UI display
-  service_type: string;
-  rating: number;
-  comment: string;
-  submitted_at: string;
-  status: FeedbackStatus;
-  staff_response?: string;
+interface FeedbackWithUserName extends FeedbackType {
+  memberName?: string;
 }
 
 const MemberFeedback: React.FC = () => {
   const { isAdmin, isStaff, token } = useAuth();
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState<FeedbackType[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
-  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackType | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackWithUserName | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [responseText, setResponseText] = useState('');
 
   // Fetch feedback from database
-  const { data: feedback = [], isLoading: loading } = useQuery({
+  const { data: feedbackItems = [], isLoading } = useQuery({
     queryKey: ['feedback'],
     queryFn: async () => {
       try {
@@ -66,14 +55,14 @@ const MemberFeedback: React.FC = () => {
         });
         
         // Format the data to match our interface
-        const formattedFeedback: FeedbackType[] = feedbackData.map(fb => ({
+        const formattedFeedback: FeedbackWithUserName[] = feedbackData.map(fb => ({
           id: fb._id.toString(),
           member_id: fb.member_id.toString(),
           memberName: userMap.get(fb.member_id.toString()) || 'Unknown User',
           service_type: fb.service_type,
           rating: fb.rating,
           comment: fb.comment,
-          status: fb.status as FeedbackStatus,
+          status: fb.status,
           staff_response: fb.staff_response,
           submitted_at: fb.submitted_at.toISOString(),
           created_at: fb.created_at.toISOString(),
@@ -90,8 +79,45 @@ const MemberFeedback: React.FC = () => {
     enabled: !!token && (isAdmin || isStaff)
   });
 
+  // Mutation to update feedback
+  const updateFeedbackMutation = useMutation({
+    mutationFn: async ({ 
+      id, 
+      staffResponse, 
+      status 
+    }: { 
+      id: string; 
+      staffResponse?: string; 
+      status?: string;
+    }) => {
+      await connectToDatabase();
+      const updateData: {[key: string]: any} = {
+        updated_at: new Date()
+      };
+      
+      if (staffResponse !== undefined) {
+        updateData.staff_response = staffResponse;
+        updateData.status = 'responded';
+      }
+      
+      if (status !== undefined) {
+        updateData.status = status;
+      }
+      
+      await Feedback.findByIdAndUpdate(id, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feedback'] });
+      toast.success('Feedback updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating feedback:', error);
+      toast.error('Failed to update feedback');
+    }
+  });
+
   // Filter feedback based on search term and filters
-  const filteredFeedback = feedback.filter(item => {
+  const filteredFeedback = feedbackItems.filter(item => {
     // Filter by status
     if (statusFilter !== 'all' && item.status !== statusFilter) {
       return false;
@@ -125,7 +151,7 @@ const MemberFeedback: React.FC = () => {
     return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
   });
 
-  const openDetail = (item: FeedbackType) => {
+  const openDetail = (item: FeedbackWithUserName) => {
     setSelectedFeedback(item);
     setResponseText(item.staff_response || '');
     setIsDetailOpen(true);
@@ -146,7 +172,7 @@ const MemberFeedback: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
+  const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       await updateFeedbackMutation.mutateAsync({
         id,
@@ -266,7 +292,7 @@ const MemberFeedback: React.FC = () => {
             </div>
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-8">
               <p>Loading feedback data...</p>
             </div>

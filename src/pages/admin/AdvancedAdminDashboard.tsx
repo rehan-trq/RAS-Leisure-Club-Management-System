@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Download, ChartBar } from 'lucide-react';
 import { ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Member {
   id: string;

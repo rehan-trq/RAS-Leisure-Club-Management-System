@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -75,24 +74,7 @@ const Signup = () => {
   };
 
   const handleGoogleSignup = async () => {
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Account created with Google!');
-      }
-    } catch (error: any) {
-      console.error('Google signup error:', error);
-      toast.error(error.message || 'Failed to sign up with Google');
-    } finally {
-      setLoading(false);
-    }
+    toast.info('Google authentication is not available in this version.');
   };
 
   return (

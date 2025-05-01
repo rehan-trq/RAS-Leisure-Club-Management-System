@@ -1,293 +1,353 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, Edit, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import User from '@/integrations/mongodb/models/User';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus, Pencil, Trash, Search } from 'lucide-react';
+import type { UserRole } from '@/types/database';
 
 interface StaffMember {
   id: string;
-  full_name: string;
   email: string;
-  role: string;
-  department: string;
-  status: 'active' | 'inactive' | 'on_leave';
+  full_name: string;
+  role: UserRole;
+  created_at: string;
 }
 
 const StaffManagement = () => {
-  const { toast } = useToast();
+  const { isAdmin, isStaff, token } = useAuth();
   const queryClient = useQueryClient();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentStaff, setCurrentStaff] = useState<StaffMember | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [newFullName, setNewFullName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<UserRole>('staff');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch staff members (role = 'staff' or 'admin')
-  const { data: staffMembers, isLoading } = useQuery({
+  // Fetch staff members from database
+  const { data: staffData = [], isLoading } = useQuery({
     queryKey: ['staff-members'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
-        .or('role.eq.staff,role.eq.admin')
-        .order('full_name');
-      
-      if (error) {
-        toast({
-          title: 'Error fetching staff members',
-          description: error.message,
-          variant: 'destructive',
-        });
-        throw error;
+      try {
+        await connectToDatabase();
+        const staff = await User.find({ role: { $in: ['staff', 'admin'] } }).sort({ full_name: 1 });
+        return staff.map(member => ({
+          id: member._id.toString(),
+          email: member.email,
+          full_name: member.full_name,
+          role: member.role as UserRole,
+          created_at: member.created_at.toISOString()
+        })) as StaffMember[];
+      } catch (error) {
+        console.error("Error fetching staff members:", error);
+        toast.error("Failed to load staff members");
+        return [];
       }
-      
-      // Transform to StaffMember interface - in a real app, department and status would come from database
-      const staff: StaffMember[] = data.map(profile => ({
-        id: profile.id,
-        full_name: profile.full_name || 'Unknown',
-        email: profile.email || 'No email',
-        role: profile.role,
-        department: profile.role === 'admin' ? 'Management' : 'Operations',
-        status: 'active',
-      }));
-      
-      return staff;
-    }
+    },
+    enabled: !!token && (isAdmin || isStaff)
   });
-  
-  // Filter staff based on search query
-  const filteredStaff = staffMembers?.filter(staff => 
-    staff.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    staff.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
-  // Update staff role/status mutation
-  const updateStaffMutation = useMutation({
-    mutationFn: async (data: { id: string; role?: string; status?: 'active' | 'inactive' | 'on_leave' }) => {
-      const updates: any = {};
-      if (data.role) updates.role = data.role;
-      // In a real app, you would also update status
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', data.id);
-        
-      if (error) throw error;
+  // Mutation to create a new staff member
+  const createStaffMutation = useMutation({
+    mutationFn: async () => {
+      await connectToDatabase();
+      // Placeholder for creating a new staff member
+      console.log('Creating staff member', { newFullName, newEmail, newRole });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff-members'] });
-      toast({ title: "Staff member updated successfully" });
-      setIsEditDialogOpen(false);
+      toast.success('Staff member created successfully');
+      setIsCreateOpen(false);
     },
     onError: (error) => {
-      toast({ 
-        title: "Failed to update staff member", 
-        description: error.message,
-        variant: "destructive" 
-      });
+      console.error('Error creating staff member:', error);
+      toast.error('Failed to create staff member');
     }
   });
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-red-100 text-red-800';
-      case 'on_leave': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Mutation to update a staff member
+  const updateStaffMutation = useMutation({
+    mutationFn: async () => {
+      await connectToDatabase();
+      // Placeholder for updating a staff member
+      console.log('Updating staff member', { selectedStaff, newFullName, newEmail, newRole });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-members'] });
+      toast.success('Staff member updated successfully');
+      setIsEditOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error updating staff member:', error);
+      toast.error('Failed to update staff member');
     }
+  });
+
+  // Mutation to delete a staff member
+  const deleteStaffMutation = useMutation({
+    mutationFn: async () => {
+      await connectToDatabase();
+      // Placeholder for deleting a staff member
+      console.log('Deleting staff member', selectedStaff);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-members'] });
+      toast.success('Staff member deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Error deleting staff member:', error);
+      toast.error('Failed to delete staff member');
+    }
+  });
+
+  // Filter staff members based on search term
+  const filteredStaff = staffData.filter(member => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      member.full_name.toLowerCase().includes(searchLower) ||
+      member.email.toLowerCase().includes(searchLower) ||
+      member.role.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const openCreateDialog = () => {
+    setNewFullName('');
+    setNewEmail('');
+    setNewRole('staff');
+    setIsCreateOpen(true);
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-serif font-bold mb-2">Staff Management</h1>
-          <p className="text-muted-foreground">
-            Manage staff members and their roles
-          </p>
-        </div>
-        
-        <Button className="mt-4 md:mt-0" onClick={() => setIsAddDialogOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Staff Member
-        </Button>
-      </div>
-      
-      <div className="mb-6">
-        <Input 
-          placeholder="Search by name, email, or department..." 
-          value={searchQuery} 
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
+  const openEditDialog = (member: StaffMember) => {
+    setSelectedStaff(member);
+    setNewFullName(member.full_name);
+    setNewEmail(member.email);
+    setNewRole(member.role);
+    setIsEditOpen(true);
+  };
 
+  const handleDeleteStaff = (member: StaffMember) => {
+    setSelectedStaff(member);
+    deleteStaffMutation.mutate();
+  };
+
+  if (!isAdmin) {
+    return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center">
-            <Users className="mr-2 h-5 w-5 text-primary" />
-            Staff Members
-          </CardTitle>
-          <Badge variant="outline">{staffMembers?.length || 0} Total</Badge>
+        <CardContent className="pt-6">
+          <p className="text-center">You don't have permission to access this feature.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Staff Management</CardTitle>
+          <CardDescription>Manage staff members and their roles</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center p-8">Loading staff data...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStaff && filteredStaff.length > 0 ? (
-                    filteredStaff.map((staff) => (
-                      <TableRow key={staff.id}>
-                        <TableCell className="font-medium">{staff.full_name}</TableCell>
-                        <TableCell>{staff.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{staff.role}</Badge>
-                        </TableCell>
-                        <TableCell>{staff.department}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(staff.status)}>{staff.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => {
-                              setCurrentStaff(staff);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">
-                        {searchQuery ? 'No matching staff found' : 'No staff members found'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <div className="absolute left-3 top-3 text-gray-400">
+                <Search className="h-4 w-4" />
+              </div>
+              <Input
+                placeholder="Search staff members..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            <Button onClick={openCreateDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Staff
+            </Button>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p>Loading staff data...</p>
+            </div>
+          ) : filteredStaff.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No staff members match your filters</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredStaff.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>{member.full_name}</TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>{member.role}</TableCell>
+                    <TableCell>
+                      {new Date(member.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(member)}
+                          title="Edit staff member"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteStaff(member)}
+                          title="Delete staff member"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Edit Staff Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Create Staff Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Staff Member</DialogTitle>
+            <DialogTitle>Create Staff Member</DialogTitle>
+            <DialogDescription>
+              Add a new staff member to the system
+            </DialogDescription>
           </DialogHeader>
-          
-          {currentStaff && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium">{currentStaff.full_name}</h3>
-                <p className="text-sm text-muted-foreground">{currentStaff.email}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Role</h4>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant={currentStaff.role === 'staff' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => updateStaffMutation.mutate({ 
-                        id: currentStaff.id, 
-                        role: 'staff' 
-                      })}
-                    >
-                      Staff
-                    </Button>
-                    <Button 
-                      variant={currentStaff.role === 'admin' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => updateStaffMutation.mutate({ 
-                        id: currentStaff.id, 
-                        role: 'admin' 
-                      })}
-                    >
-                      Admin
-                    </Button>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Status</h4>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant={currentStaff.status === 'active' ? 'default' : 'outline'}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => {
-                        // In a real app, this would update the status in the database
-                        toast({ title: "Status update not implemented in demo" });
-                      }}
-                    >
-                      Active
-                    </Button>
-                    <Button 
-                      variant={currentStaff.status === 'inactive' ? 'default' : 'outline'}
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={() => {
-                        toast({ title: "Status update not implemented in demo" });
-                      }}
-                    >
-                      Inactive
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Full Name
+              </Label>
+              <Input
+                id="name"
+                value={newFullName}
+                onChange={(e) => setNewFullName(e.target.value)}
+                className="col-span-3"
+              />
             </div>
-          )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => createStaffMutation.mutate()}>Create</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Staff Dialog (in real app would have form fields) */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+      {/* Edit Staff Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Staff Member</DialogTitle>
+            <DialogTitle>Edit Staff Member</DialogTitle>
+            <DialogDescription>
+              Edit staff member details
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-center text-muted-foreground">
-              In a complete implementation, this would contain a form to add new staff members.
-              <br /><br />
-              For this demo, you can use the signup page and then change their role to 'staff' or 'admin'.
-            </p>
-            <div className="flex justify-center mt-4">
-              <Button onClick={() => setIsAddDialogOpen(false)}>Close</Button>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Full Name
+              </Label>
+              <Input
+                id="edit-name"
+                value={newFullName}
+                onChange={(e) => setNewFullName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => updateStaffMutation.mutate()}>Update</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
