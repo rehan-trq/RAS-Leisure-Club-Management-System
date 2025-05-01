@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -11,6 +12,15 @@ export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'processed';
 export type MaintenanceStatus = 'pending' | 'in_progress' | 'resolved';
 export type MaintenancePriority = 'low' | 'medium' | 'high';
 export type FeedbackStatus = 'new' | 'flagged' | 'responded' | 'archived';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  name: string | null;
+  role: UserRole;
+  avatar_url: string | null;
+}
 
 export interface Service {
   id: string;
@@ -140,44 +150,3 @@ export interface RefundRequest {
   created_at: string;
   updated_at: string;
 }
-
-// Extended Database type to include our custom tables
-export type Database = {
-  public: {
-    Tables: {
-      profiles: {
-        Row: Profile;
-      };
-      services: {
-        Row: Service;
-      };
-      bookings: {
-        Row: Booking;
-      };
-      maintenance_requests: {
-        Row: MaintenanceRequest;
-      };
-      announcements: {
-        Row: Announcement;
-      };
-      payments: {
-        Row: Payment;
-      };
-      staff_schedules: {
-        Row: StaffSchedule;
-      };
-      facility_checkins: {
-        Row: FacilityCheckin;
-      };
-      staff_announcements: {
-        Row: StaffAnnouncement;
-      };
-      member_feedback: {
-        Row: Feedback;
-      };
-      refund_requests: {
-        Row: RefundRequest;
-      };
-    };
-  };
-};

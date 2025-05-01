@@ -1,61 +1,66 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Wrench, ClipboardList, Calendar, Users, Bell, ChartBar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-
-interface MaintenanceRequest {
-  id: string;
-  facility: string;
-  issue: string;
-  priority: string;
-  status: string;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
 
 const StaffLanding = () => {
   const { user, logout } = useAuth();
-  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    const fetchMaintenanceRequests = async () => {
+  // Fetch maintenance requests using react-query
+  const { data: maintenanceRequests = [] } = useQuery({
+    queryKey: ['staff-maintenance-requests'],
+    queryFn: async () => {
       try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('maintenance_requests')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(3);
-          
-        if (error) throw error;
-        setMaintenanceRequests(data || []);
+        await connectToDatabase();
+        const requests = await MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 }).limit(3);
+        
+        return requests.map(request => ({
+          id: request._id.toString(),
+          facility: request.facility,
+          issue: request.issue,
+          priority: request.priority,
+          status: request.status
+        }));
       } catch (error) {
         console.error('Error fetching maintenance requests:', error);
+        return [];
       } finally {
         setIsLoading(false);
       }
-    };
-    
-    fetchMaintenanceRequests();
-  }, []);
+    }
+  });
+
+  // Mutation to resolve maintenance tasks
+  const resolveTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await connectToDatabase();
+      await MaintenanceRequest.findByIdAndUpdate(id, {
+        status: 'resolved',
+        resolved_at: new Date(),
+        updated_at: new Date()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-maintenance-requests'] });
+    },
+    onError: (error) => {
+      console.error('Error resolving task:', error);
+    }
+  });
 
   const handleResolveTask = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('maintenance_requests')
-        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setMaintenanceRequests(prev => prev.filter(request => request.id !== id));
+      await resolveTaskMutation.mutateAsync(id);
     } catch (error) {
-      console.error('Error resolving task:', error);
+      console.error('Error in handleResolveTask:', error);
     }
   };
 

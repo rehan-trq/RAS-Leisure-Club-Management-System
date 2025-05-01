@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,8 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import RefundRequest from '@/integrations/mongodb/models/RefundRequest';
+import User from '@/integrations/mongodb/models/User';
 import { useAuth } from '@/contexts/AuthContext';
+import type { RefundRequest as RefundRequestType, RefundStatus } from '@/types/database';
 
 type RefundStatus = 'pending' | 'approved' | 'rejected' | 'processed';
 
@@ -30,7 +33,8 @@ interface RefundRequest {
 }
 
 const RefundRequestHandler = () => {
-  const { isAdmin, isStaff } = useAuth();
+  const { isAdmin, isStaff, token } = useAuth();
+  const queryClient = useQueryClient();
   const [requests, setRequests] = useState<RefundRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
@@ -41,46 +45,98 @@ const RefundRequestHandler = () => {
   const [activeTab, setActiveTab] = useState('pending');
 
   // Fetch refund requests from database
-  useEffect(() => {
-    const fetchRefundRequests = async () => {
-      setLoading(true);
+  const { data: requests = [], isLoading: loading } = useQuery({
+    queryKey: ['refund-requests'],
+    queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('refund_requests')
-          .select(`
-            *,
-            profiles:customer_id(full_name)
-          `)
-          .order('requested_at', { ascending: false });
-
-        if (error) throw error;
-
+        await connectToDatabase();
+        
+        const refundData = await RefundRequest.find().sort({ requested_at: -1 });
+        
+        // Get user names
+        const userIds = [...new Set(refundData.map(req => req.customer_id))];
+        const users = await User.find({ _id: { $in: userIds } });
+        
+        // Map users to a dictionary for quick lookup
+        const userMap = new Map();
+        users.forEach(user => {
+          userMap.set(user._id.toString(), user.full_name || 'Unknown User');
+        });
+        
         // Format the data to match our interface
-        const formattedRequests: RefundRequest[] = data.map(req => ({
-          id: req.id,
-          customer_id: req.customer_id,
-          customerName: req.profiles?.full_name || 'Unknown User',
+        const formattedRequests: RefundRequestType[] = refundData.map(req => ({
+          id: req._id.toString(),
+          customer_id: req.customer_id.toString(),
+          customerName: userMap.get(req.customer_id.toString()) || 'Unknown User',
           transaction_id: req.transaction_id,
-          amount: parseFloat(req.amount),
+          amount: req.amount,
           reason: req.reason,
-          status: req.status,
+          status: req.status as RefundStatus,
           notes: req.notes || '',
-          requested_at: req.requested_at,
-          processed_at: req.processed_at
+          requested_at: req.requested_at.toISOString(),
+          processed_at: req.processed_at ? req.processed_at.toISOString() : undefined,
+          created_at: req.created_at.toISOString(),
+          updated_at: req.updated_at.toISOString()
         }));
-
-        setRequests(formattedRequests);
+        
+        return formattedRequests;
       } catch (error) {
         console.error("Error fetching refund requests:", error);
         toast.error("Failed to load refund requests");
-      } finally {
-        setLoading(false);
+        return [];
       }
-    };
-
-    fetchRefundRequests();
-  }, []);
-
+    },
+    enabled: !!token && (isAdmin || isStaff)
+  });
+  
+  const updateRefundRequestMutation = useMutation({
+    mutationFn: async ({ 
+      id, 
+      status, 
+      notes,
+      amount,
+      processed 
+    }: { 
+      id: string; 
+      status?: RefundStatus; 
+      notes?: string;
+      amount?: number;
+      processed?: boolean;
+    }) => {
+      await connectToDatabase();
+      
+      const updateData: any = {
+        updated_at: new Date()
+      };
+      
+      if (status) {
+        updateData.status = status;
+      }
+      
+      if (notes !== undefined) {
+        updateData.notes = notes;
+      }
+      
+      if (amount !== undefined) {
+        updateData.amount = amount;
+      }
+      
+      if (processed) {
+        updateData.processed_at = new Date();
+      }
+      
+      await RefundRequest.findByIdAndUpdate(id, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
+      toast.success('Refund request updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating refund request:', error);
+      toast.error('Failed to update refund request');
+    }
+  });
+  
   // Filter requests based on status
   const pendingRequests = requests.filter(request => request.status === 'pending');
   const processedRequests = requests.filter(request => request.status === 'approved' || request.status === 'rejected' || request.status === 'processed');
@@ -102,73 +158,29 @@ const RefundRequestHandler = () => {
         ? parseFloat(partialRefundAmount) 
         : selectedRequest.amount;
       
-      // Update the refund request in the database
-      const { error } = await supabase
-        .from('refund_requests')
-        .update({ 
-          status: newStatus, 
-          notes: reviewNotes,
-          amount: newAmount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedRequest.id);
-
-      if (error) throw error;
-
-      // Update local state
-      const updatedRequests = requests.map(request => {
-        if (request.id === selectedRequest.id) {
-          return {
-            ...request,
-            status: newStatus as RefundStatus,
-            notes: reviewNotes,
-            amount: newAmount
-          };
-        }
-        return request;
+      await updateRefundRequestMutation.mutateAsync({
+        id: selectedRequest.id,
+        status: newStatus as RefundStatus,
+        notes: reviewNotes,
+        amount: newAmount
       });
-
-      setRequests(updatedRequests);
+      
       setIsReviewOpen(false);
-      toast.success(`Refund request ${newStatus}`);
     } catch (error) {
-      console.error("Error updating refund request:", error);
-      toast.error("Failed to update refund request");
+      console.error("Error in handleReviewSubmit:", error);
     }
   };
 
   const handleProcessRefund = async (requestId: string) => {
     try {
-      // Update the refund request in the database
-      const { error } = await supabase
-        .from('refund_requests')
-        .update({ 
-          status: 'processed', 
-          notes: `Processed on ${format(new Date(), 'yyyy-MM-dd')}`,
-          processed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
-
-      if (error) throw error;
-
-      // Update local state
-      const updatedRequests = requests.map(request => {
-        if (request.id === requestId && request.status === 'approved') {
-          return {
-            ...request,
-            status: 'processed' as RefundStatus,
-            notes: `Processed on ${format(new Date(), 'yyyy-MM-dd')}`
-          };
-        }
-        return request;
+      await updateRefundRequestMutation.mutateAsync({
+        id: requestId,
+        status: 'processed',
+        notes: `Processed on ${format(new Date(), 'yyyy-MM-dd')}`,
+        processed: true
       });
-
-      setRequests(updatedRequests);
-      toast.success('Refund has been processed');
     } catch (error) {
-      console.error("Error processing refund:", error);
-      toast.error("Failed to process refund");
+      console.error("Error in handleProcessRefund:", error);
     }
   };
 

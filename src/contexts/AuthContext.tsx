@@ -2,24 +2,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
-import type { Profile } from '@/types/database';
-
-export type UserRole = 'member' | 'staff' | 'admin';
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  full_name: string | null;
-  name: string | null;
-  role: UserRole;
-  avatar_url: string | null;
-}
+import { login as authLogin, signup as authSignup, getCurrentUser, updateUserProfile } from '@/integrations/mongodb/services/authService';
+import type { AuthUser, UserRole } from '@/types/database';
 
 interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
+  token: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
@@ -34,99 +22,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session);
-        setSession(session);
-        
-        if (session?.user) {
-          try {
-            // Fetch the user's profile to get their role
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (error) {
-              console.error('Error fetching user profile:', error);
-              return;
-            }
-            
-            const profileData = profile as Profile;
-            
-            const authUser = {
-              id: session.user.id,
-              email: session.user.email!,
-              full_name: profileData?.full_name,
-              name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-              role: (profileData?.role as UserRole) || 'member',
-              avatar_url: profileData?.avatar_url
-            };
-            
-            setUser(authUser);
-            
-            // Handle redirection based on role for login event
-            if (event === 'SIGNED_IN') {
-              redirectBasedOnRole(authUser.role);
-            }
-          } catch (error) {
-            console.error('Error in auth state change handler:', error);
-          }
-        } else {
-          setUser(null);
-        }
-      }
-    );
-
-    // THEN check for existing session
+    // Check for saved token and authenticate user on page load
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      setSession(session);
-      
-      if (session?.user) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (error) {
-            console.error('Error fetching user profile:', error);
-            return;
+      try {
+        const savedToken = localStorage.getItem('authToken');
+        
+        if (savedToken) {
+          const currentUser = await getCurrentUser(savedToken);
+          
+          if (currentUser) {
+            setUser(currentUser);
+            setToken(savedToken);
+          } else {
+            // Token is invalid or expired
+            localStorage.removeItem('authToken');
           }
-          
-          const profileData = profile as Profile;
-          
-          const authUser = {
-            id: session.user.id,
-            email: session.user.email!,
-            full_name: profileData?.full_name,
-            name: profileData?.full_name?.split(' ')[0] || session.user.email!.split('@')[0],
-            role: (profileData?.role as UserRole) || 'member',
-            avatar_url: profileData?.avatar_url
-          };
-          
-          setUser(authUser);
-        } catch (error) {
-          console.error('Error initializing auth:', error);
         }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
       }
     };
     
     initializeAuth();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
+  }, []);
   
   const redirectBasedOnRole = (role: UserRole) => {
     console.log('Redirecting based on role:', role);
@@ -147,59 +72,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      console.log('Attempting login with:', email);
+      const { user, token } = await authLogin(email, password);
       
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        // If login fails and it's one of our demo accounts, try to create it
-        if (error.message === 'Invalid login credentials' && 
-            ['member@example.com', 'staff@example.com', 'admin@example.com'].includes(email) && 
-            password === 'password123') {
-          
-          console.log(`Creating demo account for ${email}`);
-          
-          // Extract role from email
-          const role = email.split('@')[0] as UserRole;
-          
-          // Sign up the demo account
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
-                role: role
-              }
-            }
-          });
-
-          if (signUpError) {
-            throw signUpError;
-          }
-          
-          // Try to sign in again after creating the account
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (retryError) {
-            throw retryError;
-          }
-          
-          toast.success('Demo account created and logged in!');
-          return;
-        }
-        
-        // If it's not a demo account or creation fails, throw the original error
-        throw error;
-      }
-
+      setUser(user);
+      setToken(token);
+      
+      // Save token to localStorage
+      localStorage.setItem('authToken', token);
+      
       toast.success('Successfully logged in!');
+      
+      // Redirect based on user role
+      redirectBasedOnRole(user.role);
     } catch (error: any) {
       console.error('Error logging in:', error);
       toast.error(error.message || 'Failed to log in');
@@ -209,21 +93,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (email: string, password: string, fullName: string) => {
     try {
-      console.log('Attempting signup with:', email, fullName);
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'member' // Default role for new signups
-          }
-        }
-      });
-
-      if (error) throw error;
-
+      const { user, token } = await authSignup(email, password, fullName);
+      
+      setUser(user);
+      setToken(token);
+      
+      // Save token to localStorage
+      localStorage.setItem('authToken', token);
+      
       toast.success('Account created successfully! You are now logged in.');
+      
+      // Redirect to member dashboard for new users
+      redirectBasedOnRole('member');
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast.error(error.message || 'Failed to sign up');
@@ -233,11 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
       setUser(null);
-      setSession(null);
+      setToken(null);
+      
+      // Remove token from localStorage
+      localStorage.removeItem('authToken');
+      
       navigate('/login');
       toast.success('Successfully logged out');
     } catch (error: any) {
@@ -248,19 +130,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: Partial<AuthUser>) => {
     try {
-      if (!user?.id) throw new Error('No user logged in');
+      if (!user?.id || !token) throw new Error('No user logged in');
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.full_name,
-          avatar_url: data.avatar_url,
-        } as any)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setUser(prev => prev ? { ...prev, ...data } : null);
+      const updatedUser = await updateUserProfile(user.id, data);
+      
+      setUser(prev => prev ? { ...prev, ...updatedUser } : null);
       toast.success('Profile updated successfully');
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -278,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        session,
+        token,
         isAuthenticated,
         isAdmin,
         isStaff,

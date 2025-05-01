@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Wallet, Download, Search, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import Payment from '@/integrations/mongodb/models/Payment';
 
 interface Transaction {
   id: string;
@@ -38,27 +38,28 @@ const TransactionHistory = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('payment_date', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Transform to Transaction interface
-      const formattedTransactions: Transaction[] = data.map(payment => ({
-        id: payment.id,
-        date: new Date(payment.payment_date).toLocaleDateString(),
-        description: `${payment.plan_name} Membership`,
-        amount: parseFloat(payment.amount),
-        type: 'payment',
-        status: payment.status,
-        method: payment.payment_method || 'Credit Card',
-        receipt_url: `/receipts/${payment.id}.pdf` // This would be a real URL in production
-      }));
-      
-      return formattedTransactions;
+      try {
+        await connectToDatabase();
+        
+        const payments = await Payment.find({ user_id: user.id }).sort({ payment_date: -1 });
+        
+        // Transform to Transaction interface
+        const formattedTransactions: Transaction[] = payments.map(payment => ({
+          id: payment._id.toString(),
+          date: new Date(payment.payment_date).toLocaleDateString(),
+          description: `${payment.plan_name} Membership`,
+          amount: payment.amount,
+          type: 'payment',
+          status: payment.status,
+          method: payment.payment_method || 'Credit Card',
+          receipt_url: `/receipts/${payment._id}.pdf` // This would be a real URL in production
+        }));
+        
+        return formattedTransactions;
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
     enabled: !!user
   });

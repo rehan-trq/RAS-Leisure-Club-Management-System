@@ -13,8 +13,12 @@ import {
   Search, Filter, Star, MessageSquare, Clock, X 
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import Feedback from '@/integrations/mongodb/models/Feedback';
+import User from '@/integrations/mongodb/models/User';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Feedback as FeedbackType, FeedbackStatus } from '@/types/database';
 
 type FeedbackStatus = 'new' | 'flagged' | 'responded' | 'archived';
 
@@ -31,55 +35,60 @@ interface Feedback {
 }
 
 const MemberFeedback: React.FC = () => {
-  const { isAdmin, isStaff } = useAuth();
-  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const { isAdmin, isStaff, token } = useAuth();
+  const queryClient = useQueryClient();
+  const [feedback, setFeedback] = useState<FeedbackType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
-  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackType | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [responseText, setResponseText] = useState('');
 
   // Fetch feedback from database
-  useEffect(() => {
-    const fetchFeedback = async () => {
-      setLoading(true);
+  const { data: feedback = [], isLoading: loading } = useQuery({
+    queryKey: ['feedback'],
+    queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('member_feedback')
-          .select(`
-            *,
-            profiles:member_id(full_name)
-          `)
-          .order('submitted_at', { ascending: false });
-
-        if (error) throw error;
-
+        await connectToDatabase();
+        
+        const feedbackData = await Feedback.find().sort({ submitted_at: -1 });
+        
+        // Get user names
+        const userIds = [...new Set(feedbackData.map(fb => fb.member_id))];
+        const users = await User.find({ _id: { $in: userIds } });
+        
+        // Map users to a dictionary for quick lookup
+        const userMap = new Map();
+        users.forEach(user => {
+          userMap.set(user._id.toString(), user.full_name || 'Unknown User');
+        });
+        
         // Format the data to match our interface
-        const formattedFeedback: Feedback[] = data.map(fb => ({
-          id: fb.id,
-          member_id: fb.member_id,
-          memberName: fb.profiles?.full_name || 'Unknown User',
+        const formattedFeedback: FeedbackType[] = feedbackData.map(fb => ({
+          id: fb._id.toString(),
+          member_id: fb.member_id.toString(),
+          memberName: userMap.get(fb.member_id.toString()) || 'Unknown User',
           service_type: fb.service_type,
           rating: fb.rating,
           comment: fb.comment,
           status: fb.status as FeedbackStatus,
           staff_response: fb.staff_response,
-          submitted_at: fb.submitted_at
+          submitted_at: fb.submitted_at.toISOString(),
+          created_at: fb.created_at.toISOString(),
+          updated_at: fb.updated_at.toISOString()
         }));
-
-        setFeedback(formattedFeedback);
+        
+        return formattedFeedback;
       } catch (error) {
         console.error("Error fetching feedback:", error);
         toast.error("Failed to load member feedback");
-      } finally {
-        setLoading(false);
+        return [];
       }
-    };
-
-    fetchFeedback();
-  }, []);
+    },
+    enabled: !!token && (isAdmin || isStaff)
+  });
 
   // Filter feedback based on search term and filters
   const filteredFeedback = feedback.filter(item => {
@@ -116,7 +125,7 @@ const MemberFeedback: React.FC = () => {
     return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
   });
 
-  const openDetail = (item: Feedback) => {
+  const openDetail = (item: FeedbackType) => {
     setSelectedFeedback(item);
     setResponseText(item.staff_response || '');
     setIsDetailOpen(true);
@@ -126,68 +135,25 @@ const MemberFeedback: React.FC = () => {
     if (!selectedFeedback) return;
     
     try {
-      // Update the feedback in the database
-      const { error } = await supabase
-        .from('member_feedback')
-        .update({ 
-          status: 'responded' as FeedbackStatus, 
-          staff_response: responseText,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedFeedback.id);
-
-      if (error) throw error;
-
-      // Update local state
-      const updatedFeedback = feedback.map(item => {
-        if (item.id === selectedFeedback.id) {
-          return {
-            ...item,
-            status: 'responded' as FeedbackStatus,
-            staff_response: responseText
-          };
-        }
-        return item;
+      await updateFeedbackMutation.mutateAsync({
+        id: selectedFeedback.id,
+        staffResponse: responseText
       });
       
-      setFeedback(updatedFeedback);
       setIsDetailOpen(false);
-      toast.success('Response submitted successfully');
     } catch (error) {
-      console.error("Error updating feedback:", error);
-      toast.error("Failed to submit response");
+      console.error("Error in handleResponseSubmit:", error);
     }
   };
 
   const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
     try {
-      // Update the feedback status in the database
-      const { error } = await supabase
-        .from('member_feedback')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Update local state
-      const updatedFeedback = feedback.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            status: newStatus
-          };
-        }
-        return item;
+      await updateFeedbackMutation.mutateAsync({
+        id,
+        status: newStatus
       });
-      
-      setFeedback(updatedFeedback);
-      toast.success(`Feedback marked as ${newStatus}`);
     } catch (error) {
-      console.error("Error updating feedback status:", error);
-      toast.error("Failed to update feedback status");
+      console.error("Error in handleStatusChange:", error);
     }
   };
 
