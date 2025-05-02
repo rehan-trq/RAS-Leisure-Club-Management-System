@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +75,38 @@ const MembershipManagement = () => {
   const [newMembershipType, setNewMembershipType] = useState('');
   const [extensionMonths, setExtensionMonths] = useState('1');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [memberships, setMemberships] = useState<MembershipType[]>([]);
+
+  useEffect(() => {
+    const fetchMemberships = async () => {
+      try {
+        setLoading(true);
+        
+        // Mock data for demonstration
+        const mockMemberships = [
+          {
+            id: '1',
+            name: 'Premium',
+            price: 99.99,
+            duration: 30,
+            description: 'Full access to all facilities and premium services',
+            benefits: ['Unlimited access', 'Personal trainer', 'Spa access', 'Priority booking'],
+            isActive: true
+          },
+          // ... more mock memberships
+        ];
+        
+        setMemberships(mockMemberships);
+      } catch (error) {
+        console.error('Error fetching memberships:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMemberships();
+  }, []);
 
   // Fetch members with their membership data
   const { data: members, isLoading } = useQuery({

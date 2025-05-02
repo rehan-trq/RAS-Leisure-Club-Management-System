@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Make sure we connect to the database before using models
+connectToDatabase();
 
 const serviceSchema = new mongoose.Schema({
   name: {
@@ -40,6 +44,12 @@ const serviceSchema = new mongoose.Schema({
   }
 });
 
-const Service = mongoose.models.Service || mongoose.model('Service', serviceSchema);
+// Check if model already exists to avoid overwriting
+let Service;
+try {
+  Service = mongoose.model('Service');
+} catch (error) {
+  Service = mongoose.model('Service', serviceSchema);
+}
 
 export default Service;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,8 @@ const MaintenanceManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<MaintenancePriority | 'all'>('all');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useData();
 
   // Fetch maintenance requests from database
   const { data: requestItems = [], isLoading } = useQuery({
@@ -240,6 +243,30 @@ const MaintenanceManagement = () => {
     return format(date, 'MMM dd, yyyy - hh:mm a');
   };
 
+  const handleSubmitRequest = async (data: any) => {
+    try {
+      setIsSubmitting(true);
+      
+      await createMaintenanceRequest({
+        facility: data.facility,
+        issue: data.issue,
+        priority: data.priority,
+        status: 'pending',
+        reported_by: user?.id || '',
+        assigned_to: null // Add the missing field to match the type
+      });
+      
+      form.reset();
+      setIsOpen(false);
+      toast.success('Maintenance request submitted successfully');
+    } catch (error) {
+      console.error('Error creating maintenance request:', error);
+      toast.error('Failed to submit maintenance request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!isAdmin && !isStaff) {
     return (
       <Card>
@@ -424,7 +451,7 @@ const MaintenanceManagement = () => {
             <Button variant="outline" onClick={closeDialog}>
               Cancel
             </Button>
-            <Button onClick={selectedRequest ? handleUpdateRequest : handleCreateRequest}>
+            <Button onClick={selectedRequest ? handleUpdateRequest : handleSubmitRequest}>
               {selectedRequest ? 'Update Request' : 'Create Request'}
             </Button>
           </DialogFooter>

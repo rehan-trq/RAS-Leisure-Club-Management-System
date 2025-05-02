@@ -38,27 +38,56 @@ const AdvancedAdminDashboard = () => {
       try {
         setLoading(true);
         
-        // Fetch member profiles
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'member')
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
+        // Mock data for demo purposes
+        const mockMembers: Member[] = [
+          {
+            id: '1',
+            name: 'John Doe',
+            email: 'john@example.com',
+            membershipType: 'Premium',
+            status: 'Active',
+            joinDate: '2023-01-15',
+            lastVisit: '2023-05-30'
+          },
+          {
+            id: '2',
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            membershipType: 'Standard',
+            status: 'Active',
+            joinDate: '2023-02-10',
+            lastVisit: '2023-05-28'
+          },
+          {
+            id: '3',
+            name: 'Robert Johnson',
+            email: 'robert@example.com',
+            membershipType: 'Premium',
+            status: 'Inactive',
+            joinDate: '2022-11-05',
+            lastVisit: '2023-04-15'
+          },
+          {
+            id: '4',
+            name: 'Emily Wilson',
+            email: 'emily@example.com',
+            membershipType: 'Standard',
+            status: 'Active',
+            joinDate: '2023-03-22',
+            lastVisit: '2023-05-29'
+          },
+          {
+            id: '5',
+            name: 'Michael Brown',
+            email: 'michael@example.com',
+            membershipType: 'Premium',
+            status: 'Suspended',
+            joinDate: '2022-09-18',
+            lastVisit: '2023-05-15'
+          }
+        ];
         
-        // Format the data to match our interface
-        const formattedMembers: Member[] = (profiles || []).map(profile => ({
-          id: profile.id,
-          name: profile.full_name || 'Unknown',
-          email: profile.email || 'No email',
-          membershipType: 'Standard', // Default value since we don't have this in our database yet
-          status: 'Active', // Default value
-          joinDate: profile.created_at ? new Date(profile.created_at).toISOString().split('T')[0] : 'Unknown',
-          lastVisit: new Date().toISOString().split('T')[0] // Placeholder
-        }));
-        
-        setMembers(formattedMembers);
+        setMembers(mockMembers);
       } catch (error) {
         console.error('Error fetching members:', error);
       } finally {

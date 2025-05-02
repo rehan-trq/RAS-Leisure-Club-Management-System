@@ -14,6 +14,12 @@ export const connectToDatabase = async () => {
   }
 
   try {
+    if (mongoose.connections[0].readyState) {
+      isConnected = true;
+      console.log('Using existing MongoDB connection');
+      return;
+    }
+    
     const db = await mongoose.connect(MONGODB_URI);
     isConnected = !!db.connections[0].readyState;
     console.log('MongoDB connected successfully');
