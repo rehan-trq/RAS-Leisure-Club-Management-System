@@ -4,13 +4,23 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Calendar, ClipboardList, LayoutDashboard, Info, Mail, UserCircle, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, isAdmin, isStaff, isMember, user, logout } = useAuth();
+  
+  // Extract role from URL path
+  const path = location.pathname;
+  const isAuthenticated = path.includes('/member') || path.includes('/staff') || path.includes('/admin');
+  const isAdmin = path.includes('/admin');
+  const isStaff = path.includes('/staff') && !isAdmin;
+  const isMember = path.includes('/member');
+  
+  // Simulated user based on path
+  const user = isAuthenticated ? {
+    name: isAdmin ? 'Admin' : isStaff ? 'Staff' : 'Member',
+  } : null;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,12 +39,17 @@ const Navbar = () => {
     setIsMenuOpen(false);
   }, [location]);
 
-  // Get the appropriate dashboard link based on user role
+  // Get the appropriate dashboard link based on path
   const getDashboardLink = () => {
     if (isAdmin) return '/admin';
     if (isStaff) return '/staff';
     if (isMember) return '/member';
     return '/';
+  };
+  
+  // Simulated logout - just redirects to login page
+  const logout = () => {
+    window.location.href = '/login';
   };
 
   return (

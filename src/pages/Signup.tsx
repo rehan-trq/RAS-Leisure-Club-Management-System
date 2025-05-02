@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Eye, EyeOff, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Signup = () => {
   const [fullName, setFullName] = useState('');
@@ -18,96 +19,62 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{
-    fullName?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
+  
   const navigate = useNavigate();
+  const { signup, isAuthenticated, user } = useAuth();
 
-  const passwordRequirements = [
-    { id: 'length', label: 'At least 8 characters', isMet: password.length >= 8 },
-    { id: 'uppercase', label: 'At least 1 uppercase letter', isMet: /[A-Z]/.test(password) },
-    { id: 'lowercase', label: 'At least 1 lowercase letter', isMet: /[a-z]/.test(password) },
-    { id: 'number', label: 'At least 1 number', isMet: /[0-9]/.test(password) },
-    { id: 'match', label: 'Passwords match', isMet: password === confirmPassword && password !== '' },
-  ];
-
-  const validateForm = () => {
-    const newErrors: {
-      fullName?: string;
-      email?: string;
-      password?: string;
-      confirmPassword?: string;
-    } = {};
-    let isValid = true;
-
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-      isValid = false;
+  // If user is already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Redirect based on user role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'staff':
+          navigate('/staff');
+          break;
+        case 'member':
+        default:
+          navigate('/member');
+          break;
+      }
     }
+  }, [isAuthenticated, user, navigate]);
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-      isValid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-      isValid = false;
-    } else if (!/[A-Z]/.test(password)) {
-      newErrors.password = 'Password must contain at least 1 uppercase letter';
-      isValid = false;
-    } else if (!/[a-z]/.test(password)) {
-      newErrors.password = 'Password must contain at least 1 lowercase letter';
-      isValid = false;
-    } else if (!/[0-9]/.test(password)) {
-      newErrors.password = 'Password must contain at least 1 number';
-      isValid = false;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!fullName || !email || !password) {
+      toast.error('Please fill out all required fields');
+      return;
     }
 
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-      isValid = false;
+      toast.error('Passwords do not match');
+      return;
     }
 
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
     
-    if (validateForm()) {
-      setLoading(true);
-      
-      // Simulate API request
-      setTimeout(() => {
-        setLoading(false);
-        
-        // For demo purposes, we'll just show a success toast and redirect
-        toast.success('Account created successfully!');
-        navigate('/login');
-      }, 1500);
-    }
-  };
-
-  const handleGoogleSignup = () => {
     setLoading(true);
     
-    // Simulate Google API request
-    setTimeout(() => {
+    try {
+      await signup(email, password, fullName);
+      // The AuthContext will handle redirection
+    } catch (error: any) {
+      console.error('Signup error:', error);
+    } finally {
       setLoading(false);
-      toast.success('Account created with Google!');
-      navigate('/login');
-    }, 1500);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    toast.info('Google authentication is not available in this version.');
   };
 
   return (
@@ -138,15 +105,12 @@ const Signup = () => {
                   <Input
                     id="fullName"
                     type="text"
-                    className={`form-input ${errors.fullName ? 'border-destructive focus:ring-destructive/20' : ''}`}
+                    className="form-input"
                     placeholder="John Doe"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={loading}
                   />
-                  {errors.fullName && (
-                    <div className="text-sm text-destructive mt-1">{errors.fullName}</div>
-                  )}
                 </div>
                 
                 <div className="form-control">
@@ -156,15 +120,12 @@ const Signup = () => {
                   <Input
                     id="email"
                     type="email"
-                    className={`form-input ${errors.email ? 'border-destructive focus:ring-destructive/20' : ''}`}
+                    className="form-input"
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                   />
-                  {errors.email && (
-                    <div className="text-sm text-destructive mt-1">{errors.email}</div>
-                  )}
                 </div>
                 
                 <div className="form-control">
@@ -175,7 +136,7 @@ const Signup = () => {
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      className={`form-input pr-10 ${errors.password ? 'border-destructive focus:ring-destructive/20' : ''}`}
+                      className="form-input pr-10"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -189,9 +150,6 @@ const Signup = () => {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {errors.password && (
-                    <div className="text-sm text-destructive mt-1">{errors.password}</div>
-                  )}
                 </div>
                 
                 <div className="form-control">
@@ -202,7 +160,7 @@ const Signup = () => {
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
-                      className={`form-input pr-10 ${errors.confirmPassword ? 'border-destructive focus:ring-destructive/20' : ''}`}
+                      className="form-input pr-10"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -216,27 +174,6 @@ const Signup = () => {
                       {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
-                    <div className="text-sm text-destructive mt-1">{errors.confirmPassword}</div>
-                  )}
-                </div>
-                
-                <div className="mt-2">
-                  <p className="text-sm font-medium mb-2">Password Requirements:</p>
-                  <ul className="space-y-1">
-                    {passwordRequirements.map((req) => (
-                      <li key={req.id} className="text-xs flex items-center gap-1.5">
-                        {req.isMet ? (
-                          <CheckCircle2 size={14} className="text-green-500" />
-                        ) : (
-                          <XCircle size={14} className="text-muted-foreground" />
-                        )}
-                        <span className={req.isMet ? 'text-green-500' : 'text-muted-foreground'}>
-                          {req.label}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
               

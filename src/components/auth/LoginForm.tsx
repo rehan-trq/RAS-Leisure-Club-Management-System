@@ -2,49 +2,57 @@
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
-import { UserRole } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface LoginFormProps {
-  onSubmit: (email: string, password: string, role: UserRole) => void;
-  loading: boolean;
-}
-
-const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('member');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-    let isValid = true;
-
-    if (!email) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-      isValid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      onSubmit(email, password, role);
+    if (!email || !password) {
+      toast.error('Please provide both email and password');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await login(email.trim(), password);
+    } catch (error: any) {
+      console.error('Login form error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login with one of the demo accounts
+  const loginWithDemoAccount = async (role: string) => {
+    console.log(`Login as ${role} role`);
+    
+    // Set the form fields for visual feedback
+    const demoEmail = `${role}@example.com`;
+    const demoPassword = 'password123';
+    
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    
+    try {
+      setLoading(true);
+      toast.loading(`Logging in as ${role}...`);
+      
+      // Attempt to login with the demo account
+      await login(demoEmail, demoPassword);
+    } catch (error) {
+      console.error('Demo login error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,15 +66,12 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
           <Input
             id="email"
             type="email"
-            className={`form-input ${errors.email ? 'border-destructive focus:ring-destructive/20' : ''}`}
+            className="form-input"
             placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
           />
-          {errors.email && (
-            <div className="text-sm text-destructive mt-1">{errors.email}</div>
-          )}
         </div>
         
         <div className="form-control">
@@ -85,7 +90,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
-              className={`form-input pr-10 ${errors.password ? 'border-destructive focus:ring-destructive/20' : ''}`}
+              className="form-input pr-10"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -99,31 +104,36 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && (
-            <div className="text-sm text-destructive mt-1">{errors.password}</div>
-          )}
         </div>
-
-        <div className="form-control">
-          <Label className="form-label">Login As</Label>
-          <RadioGroup 
-            value={role} 
-            onValueChange={(value) => setRole(value as UserRole)}
-            className="flex space-x-4 mt-2"
+      </div>
+      
+      <div className="flex flex-wrap gap-2 justify-between mb-4">
+        <span className="text-xs text-muted-foreground">Quick access:</span>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            type="button" 
+            onClick={() => loginWithDemoAccount('member')} 
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+            disabled={loading}
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="member" id="member" />
-              <Label htmlFor="member" className="cursor-pointer">Member</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="staff" id="staff" />
-              <Label htmlFor="staff" className="cursor-pointer">Staff</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="admin" id="admin" />
-              <Label htmlFor="admin" className="cursor-pointer">Admin</Label>
-            </div>
-          </RadioGroup>
+            Member
+          </button>
+          <button 
+            type="button" 
+            onClick={() => loginWithDemoAccount('staff')} 
+            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+            disabled={loading}
+          >
+            Staff
+          </button>
+          <button 
+            type="button" 
+            onClick={() => loginWithDemoAccount('admin')} 
+            className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200"
+            disabled={loading}
+          >
+            Admin
+          </button>
         </div>
       </div>
       

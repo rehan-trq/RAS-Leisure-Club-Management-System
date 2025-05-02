@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, ClipboardList, User, BarChart4 } from 'lucide-react';
+import { Calendar, ClipboardList, User, BarChart4, CreditCard } from 'lucide-react';
 
 const MemberLanding = () => {
   const { user, logout } = useAuth();
@@ -61,18 +61,20 @@ const MemberLanding = () => {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <User className="h-6 w-6 text-primary" />
+                <CreditCard className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>My Profile</CardTitle>
-              <CardDescription>Manage your account details</CardDescription>
+              <CardTitle>Membership</CardTitle>
+              <CardDescription>View or upgrade your membership</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
-                Update your contact information and preferences
+                Manage your membership plan and payments
               </p>
             </CardContent>
             <CardFooter className="flex justify-center">
-              <Button variant="outline" disabled>Coming Soon</Button>
+              <Link to="/payment">
+                <Button variant="outline">View Plans</Button>
+              </Link>
             </CardFooter>
           </Card>
         </div>

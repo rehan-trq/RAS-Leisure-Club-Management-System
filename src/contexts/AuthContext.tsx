@@ -2,141 +2,165 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { login as authLogin, signup as authSignup, getCurrentUser, updateUserProfile } from '@/integrations/mongodb/services/authService';
+import type { AuthUser, UserRole } from '@/types/database';
 
-// Define user roles
-export type UserRole = 'member' | 'staff' | 'admin';
-
-// User interface
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-}
-
-// Auth context type
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  token: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
   isMember: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
-  hasPermission: (requiredRoles: UserRole[]) => boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, fullName: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration
-const mockUsers = [
-  {
-    id: 'user1',
-    email: 'member@example.com',
-    name: 'John Member',
-    password: 'password123',
-    role: 'member' as UserRole
-  },
-  {
-    id: 'user2',
-    email: 'staff@example.com',
-    name: 'Jane Staff',
-    password: 'password123',
-    role: 'staff' as UserRole
-  },
-  {
-    id: 'user3',
-    email: 'admin@example.com',
-    name: 'Alex Admin',
-    password: 'password123',
-    role: 'admin' as UserRole
-  }
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Update localStorage when user changes
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
+    // Check for saved token and authenticate user on page load
+    const initializeAuth = async () => {
+      try {
+        const savedToken = localStorage.getItem('authToken');
+        
+        if (savedToken) {
+          const currentUser = await getCurrentUser(savedToken);
+          
+          if (currentUser) {
+            setUser(currentUser);
+            setToken(savedToken);
+          } else {
+            // Token is invalid or expired
+            localStorage.removeItem('authToken');
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeAuth();
+  }, []);
+  
+  const redirectBasedOnRole = (role: UserRole) => {
+    console.log('Redirecting based on role:', role);
+    switch(role) {
+      case 'admin':
+        navigate('/admin', { replace: true });
+        break;
+      case 'staff':
+        navigate('/staff', { replace: true });
+        break;
+      case 'member':
+        navigate('/member', { replace: true });
+        break;
+      default:
+        navigate('/', { replace: true });
     }
-  }, [user]);
+  };
 
-  // Computed properties for role checks
+  const login = async (email: string, password: string) => {
+    try {
+      const { user, token } = await authLogin(email, password);
+      
+      setUser(user);
+      setToken(token);
+      
+      // Save token to localStorage
+      localStorage.setItem('authToken', token);
+      
+      toast.success('Successfully logged in!');
+      
+      // Redirect based on user role
+      redirectBasedOnRole(user.role);
+    } catch (error: any) {
+      console.error('Error logging in:', error);
+      toast.error(error.message || 'Failed to log in');
+      throw error;
+    }
+  };
+
+  const signup = async (email: string, password: string, fullName: string) => {
+    try {
+      const { user, token } = await authSignup(email, password, fullName);
+      
+      setUser(user);
+      setToken(token);
+      
+      // Save token to localStorage
+      localStorage.setItem('authToken', token);
+      
+      toast.success('Account created successfully! You are now logged in.');
+      
+      // Redirect to member dashboard for new users
+      redirectBasedOnRole('member');
+    } catch (error: any) {
+      console.error('Error signing up:', error);
+      toast.error(error.message || 'Failed to sign up');
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setUser(null);
+      setToken(null);
+      
+      // Remove token from localStorage
+      localStorage.removeItem('authToken');
+      
+      navigate('/login');
+      toast.success('Successfully logged out');
+    } catch (error: any) {
+      console.error('Error logging out:', error);
+      toast.error(error.message || 'Failed to log out');
+    }
+  };
+
+  const updateProfile = async (data: Partial<AuthUser>) => {
+    try {
+      if (!user?.id || !token) throw new Error('No user logged in');
+
+      const updatedUser = await updateUserProfile(user.id, data);
+      
+      setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || 'Failed to update profile');
+      throw error;
+    }
+  };
+
   const isAuthenticated = !!user;
   const isAdmin = !!user && user.role === 'admin';
   const isStaff = !!user && user.role === 'staff';
   const isMember = !!user && user.role === 'member';
 
-  // Login function
-  const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    // In a real app, this would be an API call to your backend
-    const foundUser = mockUsers.find(u => 
-      u.email.toLowerCase() === email.toLowerCase() && 
-      u.password === password &&
-      u.role === role
-    );
-
-    if (foundUser) {
-      // Remove password from user object before storing
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword as User);
-      
-      // Redirect based on role
-      switch (role) {
-        case 'member':
-          navigate('/member');
-          break;
-        case 'staff':
-          navigate('/staff');
-          break;
-        case 'admin':
-          navigate('/admin');
-          break;
-        default:
-          navigate('/');
-      }
-      
-      toast.success(`Welcome back, ${foundUser.name}!`);
-    } else {
-      toast.error('Invalid credentials. Please try again.');
-      throw new Error('Invalid credentials');
-    }
-  };
-
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    navigate('/login');
-    toast.info('You have been logged out.');
-  };
-
-  // Check if user has permissions for specific roles
-  const hasPermission = (requiredRoles: UserRole[]): boolean => {
-    if (!user) return false;
-    return requiredRoles.includes(user.role);
-  };
-
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
         isAuthenticated,
         isAdmin,
         isStaff,
         isMember,
-        login, 
+        login,
+        signup,
         logout,
-        hasPermission
+        updateProfile,
       }}
     >
       {children}

@@ -1,22 +1,71 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wrench, ClipboardList, Calendar, Users, Bell } from 'lucide-react';
+import { Wrench, ClipboardList, Calendar, Users, Bell, ChartBar } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
 
 const StaffLanding = () => {
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch maintenance requests using react-query
+  const { data: maintenanceRequests = [] } = useQuery({
+    queryKey: ['staff-maintenance-requests'],
+    queryFn: async () => {
+      try {
+        await connectToDatabase();
+        const requests = await MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 }).limit(3);
+        
+        return requests.map(request => ({
+          id: request._id.toString(),
+          facility: request.facility,
+          issue: request.issue,
+          priority: request.priority,
+          status: request.status
+        }));
+      } catch (error) {
+        console.error('Error fetching maintenance requests:', error);
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  });
 
-  const pendingMaintenanceRequests = [
-    { id: 1, facility: 'Swimming Pool', issue: 'Water filter replacement', priority: 'High' },
-    { id: 2, facility: 'Tennis Court', issue: 'Net adjustment', priority: 'Medium' },
-    { id: 3, facility: 'Gym', issue: 'Treadmill maintenance', priority: 'Low' },
-  ];
+  // Mutation to resolve maintenance tasks
+  const resolveTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await connectToDatabase();
+      await MaintenanceRequest.findByIdAndUpdate(id, {
+        status: 'resolved',
+        resolved_at: new Date(),
+        updated_at: new Date()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-maintenance-requests'] });
+    },
+    onError: (error) => {
+      console.error('Error resolving task:', error);
+    }
+  });
 
-  const todayBookings = 8;
-  const pendingTasks = 3;
+  const handleResolveTask = async (id: string) => {
+    try {
+      await resolveTaskMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Error in handleResolveTask:', error);
+    }
+  };
+
+  // Count of maintenance requests
+  const pendingTasks = maintenanceRequests.length;
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-10">
@@ -40,7 +89,7 @@ const StaffLanding = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{todayBookings}</p>
+              <p className="text-3xl font-bold">8</p>
               <p className="text-sm text-muted-foreground">Activities scheduled for today</p>
             </CardContent>
             <CardFooter>
@@ -111,26 +160,42 @@ const StaffLanding = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingMaintenanceRequests.map((request) => (
-                        <tr key={request.id} className="border-b">
-                          <td className="py-3 px-4">{request.facility}</td>
-                          <td className="py-3 px-4">{request.issue}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              request.priority === 'High' 
-                                ? 'bg-red-100 text-red-800' 
-                                : request.priority === 'Medium'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                            }`}>
-                              {request.priority}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button variant="outline" size="sm">Resolve</Button>
-                          </td>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center">Loading...</td>
                         </tr>
-                      ))}
+                      ) : maintenanceRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-4 text-center">No pending maintenance requests</td>
+                        </tr>
+                      ) : (
+                        maintenanceRequests.map((request) => (
+                          <tr key={request.id} className="border-b">
+                            <td className="py-3 px-4">{request.facility}</td>
+                            <td className="py-3 px-4">{request.issue}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                request.priority === 'high'
+                                  ? 'bg-red-100 text-red-800'
+                                  : request.priority === 'medium'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-green-100 text-green-800'
+                              }`}>
+                                {request.priority}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResolveTask(request.id)}
+                              >
+                                Resolve
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -162,14 +227,16 @@ const StaffLanding = () => {
                   <Users className="mr-2 h-4 w-4" />
                   View Member Check-ins
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Update Activity Schedule
-                </Button>
                 <Link to="/admin/bookings" className="block">
                   <Button className="w-full justify-start" variant="outline">
                     <Calendar className="mr-2 h-4 w-4" />
                     Manage Bookings
+                  </Button>
+                </Link>
+                <Link to="/admin/advanced" className="block">
+                  <Button className="w-full justify-start" variant="outline">
+                    <ChartBar className="mr-2 h-4 w-4" />
+                    Advanced Dashboard
                   </Button>
                 </Link>
               </CardContent>

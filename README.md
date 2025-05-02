@@ -1,69 +1,85 @@
 # RAS Leisure Club Management System
 
-## Project info
+A comprehensive web application designed to streamline leisure club operations, including user registration, activity bookings, membership management, payments, and facility maintenance. Built using the **MERN** stack for scalability, maintainability, and ease of development.
 
-**URL**: https://lovable.dev/projects/e1806e53-6015-45fa-a151-f260572a4cfe
+---
 
-## How can I edit this code?
+## Overview
 
-There are several ways of editing your application.
+The **RAS Leisure Club Management System** is designed to automate and optimize day-to-day operations for a leisure club offering various facilities (e.g., swimming, gym, sauna, golf, table tennis). The system provides:
 
-**Use Lovable**
+- A **user-friendly** interface for members to **register**, **book activities**, **renew memberships**, and **make payments** online.
+- An **admin dashboard** to **manage staff**, **track facility status**, **view bookings**, and **generate reports** on club usage and revenue.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e1806e53-6015-45fa-a151-f260572a4cfe) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Features
 
-**Use your preferred IDE**
+1. **User Authentication & Profile Management**  
+   - Register, log in, and reset passwords securely.
+   - Update personal information and view booking history.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Activity Booking**  
+   - Reserve time slots for activities (e.g., swimming, gym, sauna).
+   - View, cancel, or reschedule existing bookings.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. **Membership Management**  
+   - Purchase, renew, or upgrade memberships.
+   - Automated reminders for membership expiration.
 
-Follow these steps:
+4. **Payment Integration**  
+   - Secure online payments for bookings and memberships.
+   - View payment history and receive transaction confirmations.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+5. **Facility Maintenance & Staff Management**  
+   - Log maintenance requests and track facility status.
+   - Manage staff profiles and assign roles.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+6. **Reporting & Analytics**  
+   - Generate operational reports (e.g., bookings, payments).
+   - Admin dashboard for real-time insights.
 
-# Step 3: Install the necessary dependencies.
-npm i
+7. **Notifications & Alerts**  
+   - Email/SMS reminders for upcoming bookings or expiring memberships.
+   - Alerts for low facility availability or scheduled maintenance.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## Tech Stack
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **MongoDB**: Database for storing user data, bookings, memberships, etc.  
+- **Express.js**: Backend framework for building RESTful APIs.  
+- **React.js**: Frontend library for creating dynamic user interfaces.  
+- **Node.js**: Runtime environment for executing server-side JavaScript.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Installation
 
-## What technologies are used for this project?
+### Prerequisites
+- **Node.js** (v14+ recommended)
+- **npm** or **yarn**
+- **MongoDB** (local or cloud-based, e.g., MongoDB Atlas)
 
-This project is built with .
+### Steps
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Clone the Repository:**
 
-## How can I deploy this project?
+   ```bash
+   git clone https://github.com/<your-username>/RAS-Leisure-Club-Management-System.git
+   cd RAS-Leisure-Club-Management-System
 
-Simply open [Lovable](https://lovable.dev/projects/e1806e53-6015-45fa-a151-f260572a4cfe) and click on Share -> Publish.
+2. ""Install Dependencies
 
-## I want to use a custom domain - is that possible?
+## Contributing
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+1. **Fork the repository.**
+
+2. **Create a new branch:**
+   ```bash
+   git checkout -b feature/some-feature
+   # or for a bug fix:
+   git checkout -b bugfix/some-bug
+3. Commit your changes with clear messages
+4. Push your branch to your fork
+5. Open a pull request to this repository

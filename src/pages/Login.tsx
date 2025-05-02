@@ -1,42 +1,13 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
-import { UserRole, useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
-import SocialLogin from '@/components/auth/SocialLogin';
-import DemoAccounts from '@/components/auth/DemoAccounts';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 const Login = () => {
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { login } = useAuth();
-
-  const handleSubmit = async (email: string, password: string, role: UserRole) => {
-    setLoading(true);
-    
-    try {
-      await login(email, password, role);
-      // Note: No need to manually redirect here as the auth context handles it
-    } catch (error) {
-      // Error handling is done in the auth context
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    setLoading(true);
-    
-    // Simulate Google API request
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Successfully logged in with Google!');
-      navigate('/');
-    }, 1500);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary p-4 relative">
       <div className="blur-circle w-[600px] h-[600px] -top-64 right-16 bg-primary/10 animate-spin-slow"></div>
@@ -56,9 +27,14 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm onSubmit={handleSubmit} loading={loading} />
-            <SocialLogin onGoogleLogin={handleGoogleLogin} loading={loading} />
-            <DemoAccounts />
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <InfoIcon className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700 font-medium">
+                Use the quick access buttons below to log in with demo accounts for different roles.
+              </AlertDescription>
+            </Alert>
+            
+            <LoginForm />
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 text-center">
             <p className="text-sm text-muted-foreground">
