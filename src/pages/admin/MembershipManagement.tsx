@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge as BadgeIcon, Clock, CalendarDays, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import User from '@/integrations/mongodb/models/User';
 
 interface MembershipType {
   id: string;
@@ -112,48 +115,50 @@ const MembershipManagement = () => {
   const { data: members, isLoading } = useQuery({
     queryKey: ['members-with-memberships'],
     queryFn: async () => {
-      // In a real app, this would join profiles with a memberships table
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'member');
-      
-      if (error) {
-        toast({
-          title: 'Error fetching members',
-          description: error.message,
-          variant: 'destructive',
+      try {
+        await connectToDatabase();
+        const profiles = await User.find({ role: 'member' });
+        
+        if (!profiles) {
+          toast({
+            title: 'Error fetching members',
+            description: 'Could not retrieve member data',
+            variant: 'destructive',
+          });
+          throw new Error('Failed to fetch member profiles');
+        }
+        
+        // Generate membership data - in a real app this would come from a memberships table
+        const membersWithData: MemberWithMembership[] = profiles.map((profile) => {
+          // Generate random membership data for demo
+          const types = ['Standard', 'Premium', 'Platinum', 'Annual Standard', 'Annual Premium'];
+          const statuses = ['active', 'expired', 'pending'] as const;
+          const randomType = types[Math.floor(Math.random() * types.length)];
+          const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+          
+          // Generate random dates
+          const startDate = new Date();
+          startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 6));
+          
+          const endDate = new Date(startDate);
+          endDate.setMonth(endDate.getMonth() + (randomType.includes('Annual') ? 12 : 1));
+          
+          return {
+            id: profile._id.toString(),
+            full_name: profile.full_name || 'Unknown',
+            email: profile.email || 'No email',
+            membership_type: randomType,
+            status: randomStatus,
+            start_date: startDate.toISOString().split('T')[0],
+            end_date: endDate.toISOString().split('T')[0],
+          };
         });
-        throw error;
+        
+        return membersWithData;
+      } catch (error) {
+        console.error('Error fetching members:', error);
+        return [];
       }
-      
-      // Mock membership data - in a real app this would come from a memberships table
-      const membersWithData: MemberWithMembership[] = profiles.map((profile) => {
-        // Generate random membership data for demo
-        const types = ['Standard', 'Premium', 'Platinum', 'Annual Standard', 'Annual Premium'];
-        const statuses = ['active', 'expired', 'pending'] as const;
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-        
-        // Generate random dates
-        const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 6));
-        
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + (randomType.includes('Annual') ? 12 : 1));
-        
-        return {
-          id: profile.id,
-          full_name: profile.full_name || 'Unknown',
-          email: profile.email || 'No email',
-          membership_type: randomType,
-          status: randomStatus,
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
-        };
-      });
-      
-      return membersWithData;
     }
   });
 

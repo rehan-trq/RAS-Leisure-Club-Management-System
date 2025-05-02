@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 import { toast } from 'sonner';
 
-const MONGODB_URI = "mongodb+srv://Saad:11223344@se-cluster.xvjqbnk.mongodb.net/?retryWrites=true&w=majority&appName=SE-Cluster";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://Saad:11223344@se-cluster.xvjqbnk.mongodb.net/?retryWrites=true&w=majority&appName=SE-Cluster";
 
 // Global variable to track connection state
 let isConnected = false;

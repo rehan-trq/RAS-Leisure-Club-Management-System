@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +25,7 @@ interface MaintenanceRequestWithNames extends MaintenanceRequestType {
 }
 
 const MaintenanceManagement = () => {
-  const { isAdmin, isStaff, token } = useAuth();
+  const { isAdmin, isStaff, token, user } = useAuth();
   const queryClient = useQueryClient();
   const [requests, setRequests] = useState<MaintenanceRequestWithNames[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,6 @@ const MaintenanceManagement = () => {
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<MaintenancePriority | 'all'>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useData();
 
   // Fetch maintenance requests from database
   const { data: requestItems = [], isLoading } = useQuery({
@@ -207,7 +208,8 @@ const MaintenanceManagement = () => {
         issue,
         priority,
         status,
-        reported_by: users[0].id // Assuming the first user is the reporter
+        reported_by: user?.id || '',
+        assigned_to: null
       });
     } catch (error) {
       console.error("Error creating maintenance request:", error);
@@ -243,21 +245,28 @@ const MaintenanceManagement = () => {
     return format(date, 'MMM dd, yyyy - hh:mm a');
   };
 
-  const handleSubmitRequest = async (data: any) => {
+  const handleSubmitRequest = async () => {
+    if (!facility || !issue) {
+      toast.error('Please fill out all fields.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
-      await createMaintenanceRequest({
-        facility: data.facility,
-        issue: data.issue,
-        priority: data.priority,
+      await createMaintenanceRequestMutation.mutateAsync({
+        facility: facility,
+        issue: issue,
+        priority: priority,
         status: 'pending',
         reported_by: user?.id || '',
-        assigned_to: null // Add the missing field to match the type
+        assigned_to: null
       });
       
-      form.reset();
-      setIsOpen(false);
+      setFacility('');
+      setIssue('');
+      setPriority('low');
+      setIsDialogOpen(false);
       toast.success('Maintenance request submitted successfully');
     } catch (error) {
       console.error('Error creating maintenance request:', error);

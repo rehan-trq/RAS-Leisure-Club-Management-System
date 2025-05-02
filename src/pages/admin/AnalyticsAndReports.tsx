@@ -1,27 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AnalyticsAndReports = () => {
   const { isAdmin, isStaff } = useAuth();
@@ -30,57 +13,6 @@ const AnalyticsAndReports = () => {
   const [membershipData, setMembershipData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const revenueOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Revenue Analytics',
-      },
-    },
-  };
-
-  const membershipOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: 'Membership Analytics',
-      },
-    },
-  };
-
-  const revenueLabels = revenueData.map(item => item.month);
-  const membershipLabels = membershipData.map(item => item.type);
-
-  const revenueChartData = {
-    labels: revenueLabels,
-    datasets: [
-      {
-        label: 'Revenue',
-        data: revenueData.map(item => item.amount),
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-      },
-    ],
-  };
-
-  const membershipChartData = {
-    labels: membershipLabels,
-    datasets: [
-      {
-        label: 'Memberships',
-        data: membershipData.map(item => item.count),
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-      },
-    ],
-  };
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -165,7 +97,24 @@ const AnalyticsAndReports = () => {
             {loading ? (
               <div>Loading...</div>
             ) : (
-              <Bar options={revenueOptions} data={revenueChartData} />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={revenueData}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="amount" name="Revenue" fill="#ff99cc" />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
@@ -181,7 +130,24 @@ const AnalyticsAndReports = () => {
             {loading ? (
               <div>Loading...</div>
             ) : (
-              <Bar options={membershipOptions} data={membershipChartData} />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={membershipData}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" name="Memberships" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
