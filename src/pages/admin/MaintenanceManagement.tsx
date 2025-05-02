@@ -15,9 +15,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
 import User from '@/integrations/mongodb/models/User';
-import { useAuth } from '@/contexts/AuthContext';
 import type { MaintenanceRequest as MaintenanceRequestType, MaintenanceStatus, MaintenancePriority } from '@/types/database';
 import { format } from 'date-fns';
+
+// Removed duplicate useAuth import from line 18
 
 interface MaintenanceRequestWithNames extends MaintenanceRequestType {
   reportedByName?: string;
