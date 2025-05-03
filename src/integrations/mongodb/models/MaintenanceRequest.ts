@@ -1,110 +1,53 @@
 
-// Mock MaintenanceRequest model using mock data instead of MongoDB
-import mongoose from '../client';
+// Mock MaintenanceRequest model for frontend-only app
 import { mockMaintenanceRequests } from '@/mocks/mockData';
 import { connectToDatabase } from '../client';
 
-// Try to connect to the database (mock connection)
+// Connect to the database (mock connection)
 connectToDatabase().catch(console.error);
 
-// Define the schema structure for reference, but don't actually use it with MongoDB
-const maintenanceRequestSchema = {
-  facility: {
-    type: String,
-    required: true
-  },
-  issue: {
-    type: String,
-    required: true
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'in_progress', 'resolved'],
-    default: 'pending'
-  },
-  reported_by: {
-    type: String,
-    required: true
-  },
-  assigned_to: {
-    type: String,
-    default: null
-  },
-  resolved_at: {
-    type: Date,
-    default: null
-  },
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
-  }
-};
-
-// Create a mock MaintenanceRequest model
+// Define the MaintenanceRequest model with mock implementation
 const MaintenanceRequest = {
   // Find method returns all mock data
-  find: function(query: { status?: string } = {}) {
-    console.log('Mock: Finding maintenance requests with query:', query);
-    
-    // Filter the mock data based on the query
-    let filteredRequests = [...mockMaintenanceRequests];
-    
-    // Filter by status if provided
-    if (query.status) {
-      filteredRequests = filteredRequests.filter(req => req.status === query.status);
-    }
-    
-    // Sort method to be chainable
+  find: function() {
+    console.log('Mock: Finding maintenance requests');
     return {
       sort: function() {
-        // Return the data and allow limit to be chained
         return {
           limit: function(limit: number) {
-            return filteredRequests.slice(0, limit);
+            return mockMaintenanceRequests.slice(0, limit);
           },
-          // If no limit, return all data
-          exec: async function() {
-            return filteredRequests;
+          exec: function() {
+            return Promise.resolve(mockMaintenanceRequests);
           }
         };
       },
-      // Allow exec to be called directly after find
-      exec: async function() {
-        return filteredRequests;
+      exec: function() {
+        return Promise.resolve(mockMaintenanceRequests);
       }
     };
   },
   
-  // FindById method
-  findById: async function(id: string) {
-    console.log('Mock: Finding maintenance request by ID:', id);
-    return mockMaintenanceRequests.find(req => req._id === id) || null;
+  // FindById method for finding a specific maintenance request
+  findById: function(id: string) {
+    const request = mockMaintenanceRequests.find(req => req._id === id);
+    return Promise.resolve(request);
   },
-  
-  // FindByIdAndUpdate method
-  findByIdAndUpdate: async function(id: string, updateData: any) {
-    console.log('Mock: Updating maintenance request:', id, updateData);
+
+  // FindByIdAndUpdate for updating a maintenance request
+  findByIdAndUpdate: function(id: string, updateData: any) {
+    const index = mockMaintenanceRequests.findIndex(req => req._id === id);
     
-    const requestIndex = mockMaintenanceRequests.findIndex(req => req._id === id);
-    if (requestIndex !== -1) {
-      // Update the request
-      mockMaintenanceRequests[requestIndex] = {
-        ...mockMaintenanceRequests[requestIndex],
+    if (index !== -1) {
+      mockMaintenanceRequests[index] = {
+        ...mockMaintenanceRequests[index],
         ...updateData,
-        updated_at: new Date()
+        _id: mockMaintenanceRequests[index]._id // Preserve the ID
       };
-      return mockMaintenanceRequests[requestIndex];
+      return Promise.resolve(mockMaintenanceRequests[index]);
     }
-    return null;
+    
+    return Promise.resolve(null);
   }
 };
 

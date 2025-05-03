@@ -6,6 +6,7 @@ import Service from '@/integrations/mongodb/models/Service';
 import Booking from '@/integrations/mongodb/models/Booking';
 import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
 import Announcement from '@/integrations/mongodb/models/Announcement';
+import { mockServices, mockMaintenanceRequests, mockAnnouncements } from '@/mocks/mockData';
 import type { Service as ServiceType, Booking as BookingType, MaintenanceRequest as MaintenanceRequestType, Announcement as AnnouncementType } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -45,8 +46,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // Using mock connection
         await connectToDatabase();
-        const services = Service.find().sort();
-        return services.map(service => ({
+        
+        // Return mock services
+        return mockServices.map(service => ({
           id: service._id.toString(),
           name: service.name,
           description: service.description,
@@ -113,8 +115,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const maintenance = MaintenanceRequest.find().sort({ created_at: -1 }).exec();
-        return (await maintenance).map(request => ({
+        
+        // Return mock maintenance requests
+        return mockMaintenanceRequests.map(request => ({
           id: request._id.toString(),
           facility: request.facility,
           issue: request.issue,
@@ -170,8 +173,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const anncs = Announcement.find().sort();
-        return anncs.map(announcement => ({
+        
+        // Return mock announcements
+        return mockAnnouncements.map(announcement => ({
           id: announcement._id.toString(),
           title: announcement.title,
           content: announcement.content,

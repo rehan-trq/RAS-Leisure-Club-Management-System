@@ -8,6 +8,7 @@ import { Wrench, ClipboardList, Calendar, Users, Bell, ChartBar } from 'lucide-r
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
+import { mockMaintenanceRequests } from '@/mocks/mockData';
 
 const StaffLanding = () => {
   const { user, logout } = useAuth();
@@ -21,21 +22,25 @@ const StaffLanding = () => {
       try {
         // Using mock connection
         await connectToDatabase();
-        const requestsObj = MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 });
-        const requests = requestsObj.limit(3);
         
-        return requests.map(request => ({
-          id: request._id.toString(),
-          facility: request.facility,
-          issue: request.issue,
-          priority: request.priority,
-          status: request.status
-        }));
+        // Get pending maintenance requests
+        const pendingRequests = mockMaintenanceRequests
+          .filter(request => request.status === 'pending')
+          .slice(0, 3)  // Limit to 3 items
+          .map(request => ({
+            id: request._id.toString(),
+            facility: request.facility,
+            issue: request.issue,
+            priority: request.priority,
+            status: request.status
+          }));
+          
+        setIsLoading(false);
+        return pendingRequests;
       } catch (error) {
         console.error('Error fetching maintenance requests:', error);
-        return [];
-      } finally {
         setIsLoading(false);
+        return [];
       }
     }
   });

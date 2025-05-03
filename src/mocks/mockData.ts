@@ -1,166 +1,164 @@
 
-// Mock data to replace MongoDB data
+// Add or update the mock data to include all required models
 
-export interface MockMaintenanceRequest {
-  _id: string;
-  facility: string;
-  issue: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in_progress' | 'resolved';
-  reported_by: string;
-  assigned_to: string | null;
-  resolved_at: Date | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface MockService {
-  _id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  capacity: number;
-  duration: number;
-  price: number | null;
-  is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface MockAnnouncement {
-  _id: string;
-  title: string;
-  content: string;
-  audience: 'all' | 'members' | 'staff';
-  created_by: string;
-  expires_at: Date | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface MockPayment {
-  _id: string;
-  user_id: string;
-  plan_name: string;
-  amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  payment_method: string;
-  payment_date: Date;
-  created_at: Date;
-}
-
-// Mock maintenance requests
-export const mockMaintenanceRequests: MockMaintenanceRequest[] = [
+// Mock Services
+export const mockServices = [
   {
     _id: '1',
-    facility: 'Swimming Pool',
-    issue: 'Water temperature too low',
-    priority: 'medium',
-    status: 'pending',
-    reported_by: '123',
-    assigned_to: null,
-    resolved_at: null,
-    created_at: new Date('2025-04-30T10:00:00'),
-    updated_at: new Date('2025-04-30T10:00:00')
+    name: 'Tennis Court',
+    description: 'Professional tennis court with equipment rental available.',
+    image_url: '/images/tennis.jpg',
+    capacity: 4,
+    duration: 60,
+    price: 25,
+    is_active: true,
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     _id: '2',
-    facility: 'Gym',
-    issue: 'Treadmill not working',
-    priority: 'high',
-    status: 'in_progress',
-    reported_by: '124',
-    assigned_to: '456',
-    resolved_at: null,
-    created_at: new Date('2025-04-29T15:30:00'),
-    updated_at: new Date('2025-04-29T16:45:00')
+    name: 'Swimming Pool',
+    description: 'Olympic-sized swimming pool with lanes for lap swimming.',
+    image_url: '/images/pool.jpg',
+    capacity: 30,
+    duration: 120,
+    price: 15,
+    is_active: true,
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     _id: '3',
+    name: 'Fitness Center',
+    description: 'State-of-the-art fitness equipment and personal trainers.',
+    image_url: '/images/fitness.jpg',
+    capacity: 20,
+    duration: 90,
+    price: 20,
+    is_active: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  }
+];
+
+// Mock Maintenance Requests
+export const mockMaintenanceRequests = [
+  {
+    _id: '1',
     facility: 'Tennis Court',
     issue: 'Net needs replacement',
+    priority: 'medium',
+    status: 'pending',
+    reported_by: '1',
+    assigned_to: '2',
+    resolved_at: null,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: '2',
+    facility: 'Swimming Pool',
+    issue: 'pH level is too high',
+    priority: 'high',
+    status: 'in_progress',
+    reported_by: '2',
+    assigned_to: '2',
+    resolved_at: null,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: '3',
+    facility: 'Fitness Center',
+    issue: 'Treadmill #3 not working',
+    priority: 'medium',
+    status: 'pending',
+    reported_by: '3',
+    assigned_to: null,
+    resolved_at: null,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: '4',
+    facility: 'Locker Room',
+    issue: 'Shower #2 leaking',
     priority: 'low',
     status: 'resolved',
-    reported_by: '125',
-    assigned_to: '456',
-    resolved_at: new Date('2025-04-28T14:00:00'),
-    created_at: new Date('2025-04-27T09:15:00'),
-    updated_at: new Date('2025-04-28T14:00:00')
+    reported_by: '1',
+    assigned_to: '2',
+    resolved_at: new Date(),
+    created_at: new Date(),
+    updated_at: new Date()
   }
 ];
 
-// Mock services
-export const mockServices: MockService[] = [
+// Mock Announcements
+export const mockAnnouncements = [
   {
     _id: '1',
-    name: 'Swimming Lessons',
-    description: 'Professional swimming lessons for all ages and levels',
-    image_url: '/placeholder.svg',
-    capacity: 10,
-    duration: 60,
-    price: 30,
-    is_active: true,
-    created_at: new Date('2025-01-15'),
-    updated_at: new Date('2025-01-15')
-  },
-  {
-    _id: '2',
-    name: 'Yoga Class',
-    description: 'Relaxing yoga sessions with experienced instructors',
-    image_url: '/placeholder.svg',
-    capacity: 15,
-    duration: 90,
-    price: 25,
-    is_active: true,
-    created_at: new Date('2025-01-10'),
-    updated_at: new Date('2025-01-10')
-  }
-];
-
-// Mock announcements
-export const mockAnnouncements: MockAnnouncement[] = [
-  {
-    _id: '1',
-    title: 'Facility Closure',
-    content: 'The swimming pool will be closed for maintenance on May 10, 2025.',
+    title: 'Summer Schedule Update',
+    content: 'New summer hours will begin next month. Please check the schedule for details.',
     audience: 'all',
-    created_by: '456',
-    expires_at: new Date('2025-05-11'),
-    created_at: new Date('2025-05-01'),
-    updated_at: new Date('2025-05-01')
+    created_by: '3',
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     _id: '2',
-    title: 'New Yoga Class',
-    content: 'We are excited to announce a new yoga class starting next week!',
+    title: 'Pool Maintenance',
+    content: 'The pool will be closed for maintenance on July 15th.',
     audience: 'members',
-    created_by: '456',
+    created_by: '3',
     expires_at: null,
-    created_at: new Date('2025-04-28'),
-    updated_at: new Date('2025-04-28')
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: '3',
+    title: 'New Staff Training',
+    content: 'All staff members must attend the training session on Friday.',
+    audience: 'staff',
+    created_by: '3',
+    expires_at: null,
+    created_at: new Date(),
+    updated_at: new Date()
   }
 ];
 
-// Mock payments
-export const mockPayments: MockPayment[] = [
+// Mock Payments
+export const mockPayments = [
   {
     _id: '1',
-    user_id: '123',
-    plan_name: 'Premium Membership',
-    amount: 89.99,
+    user_id: '1',
+    amount: 50,
+    payment_method: 'credit_card',
     status: 'completed',
-    payment_method: 'Credit Card',
-    payment_date: new Date('2025-04-01'),
-    created_at: new Date('2025-04-01')
+    description: 'Monthly membership fee',
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     _id: '2',
-    user_id: '123',
-    plan_name: 'Swimming Class',
-    amount: 45.00,
+    user_id: '1',
+    amount: 25,
+    payment_method: 'credit_card',
     status: 'completed',
-    payment_method: 'PayPal',
-    payment_date: new Date('2025-03-15'),
-    created_at: new Date('2025-03-15')
+    description: 'Tennis court booking',
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: '3',
+    user_id: '2',
+    amount: 100,
+    payment_method: 'paypal',
+    status: 'completed',
+    description: 'Annual membership fee',
+    created_at: new Date(),
+    updated_at: new Date()
   }
 ];
+
+// Add other mock data as needed
