@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { UserRole } from '@/types/database';
 
+// Ensure we connect to the database before using the model
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
+
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -44,6 +50,7 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+// More reliable way to check if model exists before creating
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 export default User;

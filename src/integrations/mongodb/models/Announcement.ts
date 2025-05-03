@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const announcementSchema = new mongoose.Schema({
   title: {
@@ -34,6 +38,7 @@ const announcementSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const Announcement = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);
 
 export default Announcement;

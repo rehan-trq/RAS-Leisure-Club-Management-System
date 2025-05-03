@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const paymentSchema = new mongoose.Schema({
   user_id: {
@@ -34,6 +38,7 @@ const paymentSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
 
 export default Payment;

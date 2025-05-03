@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const maintenanceRequestSchema = new mongoose.Schema({
   facility: {
@@ -44,6 +48,7 @@ const maintenanceRequestSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const MaintenanceRequest = mongoose.models.MaintenanceRequest || mongoose.model('MaintenanceRequest', maintenanceRequestSchema);
 
 export default MaintenanceRequest;

@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const refundRequestSchema = new mongoose.Schema({
   customer_id: {
@@ -46,6 +50,7 @@ const refundRequestSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const RefundRequest = mongoose.models.RefundRequest || mongoose.model('RefundRequest', refundRequestSchema);
 
 export default RefundRequest;

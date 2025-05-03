@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const feedbackSchema = new mongoose.Schema({
   member_id: {
@@ -44,6 +48,7 @@ const feedbackSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
 
 export default Feedback;
