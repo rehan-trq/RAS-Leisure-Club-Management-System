@@ -1,14 +1,16 @@
 
-import mongoose from 'mongoose';
+// Mock Payment model using mock data instead of MongoDB
+import mongoose from '../client';
+import { mockPayments } from '@/mocks/mockData';
 import { connectToDatabase } from '../client';
 
-// Try to connect to the database
+// Try to connect to the database (mock connection)
 connectToDatabase().catch(console.error);
 
-const paymentSchema = new mongoose.Schema({
+// Define the schema structure for reference, but don't actually use it
+const paymentSchema = {
   user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   },
   plan_name: {
@@ -36,9 +38,31 @@ const paymentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+};
 
-// More reliable way to check if model exists before creating
-const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+// Create a mock Payment model
+const Payment = {
+  // Find method returns all mock data
+  find: async function(query = {}) {
+    console.log('Mock: Finding payments with query:', query);
+    
+    // Filter by user_id if provided
+    let filteredPayments = [...mockPayments];
+    if (query.user_id) {
+      filteredPayments = filteredPayments.filter(payment => payment.user_id === query.user_id);
+    }
+    
+    // Return the data and allow sort to be chained
+    return {
+      sort: function() {
+        return filteredPayments;
+      },
+      // Allow exec to be called directly after find
+      exec: async function() {
+        return filteredPayments;
+      }
+    };
+  }
+};
 
 export default Payment;

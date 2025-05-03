@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -14,11 +13,8 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
-import User from '@/integrations/mongodb/models/User';
 import type { MaintenanceRequest as MaintenanceRequestType, MaintenanceStatus, MaintenancePriority } from '@/types/database';
 import { format } from 'date-fns';
-
-// Removed duplicate useAuth import from line 18
 
 interface MaintenanceRequestWithNames extends MaintenanceRequestType {
   reportedByName?: string;
@@ -43,7 +39,7 @@ const MaintenanceManagement = () => {
   const [priorityFilter, setPriorityFilter] = useState<MaintenancePriority | 'all'>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch maintenance requests from database
+  // Fetch maintenance requests from mock data
   const { data: requestItems = [], isLoading } = useQuery({
     queryKey: ['maintenance-requests'],
     queryFn: async () => {
@@ -52,15 +48,11 @@ const MaintenanceManagement = () => {
 
         const maintenanceData = await MaintenanceRequest.find().sort({ created_at: -1 });
 
-        // Get user names
-        const userIds = [...new Set([...maintenanceData.map(req => req.reported_by), ...maintenanceData.map(req => req.assigned_to).filter(id => id != null)])];
-        const users = await User.find({ _id: { $in: userIds } });
-
-        // Map users to a dictionary for quick lookup
+        // Mock user names since we don't have real User model
         const userMap = new Map();
-        users.forEach(user => {
-          userMap.set(user._id.toString(), user.full_name || 'Unknown User');
-        });
+        userMap.set('123', 'John Doe');
+        userMap.set('456', 'Jane Smith');
+        userMap.set('789', 'Bob Johnson');
 
         // Format the data to match our interface
         const formattedRequests: MaintenanceRequestWithNames[] = maintenanceData.map(req => ({
@@ -85,38 +77,39 @@ const MaintenanceManagement = () => {
         return [];
       }
     },
-    enabled: !!token && (isAdmin || isStaff)
+    enabled: true // Always enabled in frontend-only mode
   });
 
   // Fetch users for assigning requests
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        await connectToDatabase();
-        const usersData = await User.find({ role: { $in: ['staff', 'admin'] } });
-        setUsers(usersData.map(user => ({
-          id: user._id.toString(),
-          name: user.full_name || user.email
-        })));
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast.error("Failed to load users");
-      }
-    };
-
-    if (isAdmin || isStaff) {
-      fetchUsers();
-    }
+    // Mock users data since we no longer have a User model
+    const mockUsers = [
+      { id: '456', name: 'Jane Smith (Staff)' },
+      { id: '789', name: 'Bob Johnson (Admin)' }
+    ];
+    
+    setUsers(mockUsers);
   }, [isAdmin, isStaff]);
 
   const createMaintenanceRequestMutation = useMutation({
     mutationFn: async (requestData: Omit<MaintenanceRequestType, 'id' | 'created_at' | 'updated_at' | 'resolved_at'>) => {
+      // Mock implementation that uses our mock MaintenanceRequest model
       await connectToDatabase();
-      const newRequest = new MaintenanceRequest({
+      console.log('Mock: Creating maintenance request with data:', requestData);
+      // This will use our mock implementation in MaintenanceRequest.js
+      const newRequest = {
         ...requestData,
-        reported_by: requestData.reported_by
-      });
-      await newRequest.save();
+        _id: Math.random().toString(36).substr(2, 9),
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date(),
+        resolved_at: null
+      };
+
+      // We don't actually save to MongoDB, this is just for the mock
+      await MaintenanceRequest.findByIdAndUpdate(newRequest._id, newRequest);
+      
+      return newRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
@@ -139,7 +132,9 @@ const MaintenanceManagement = () => {
       status?: MaintenanceStatus;
       assignedTo?: string | null;
     }) => {
+      // Mock implementation
       await connectToDatabase();
+      console.log('Mock: Updating maintenance request with id:', id);
 
       const updateData: any = {
         updated_at: new Date()

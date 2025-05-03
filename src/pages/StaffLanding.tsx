@@ -14,11 +14,12 @@ const StaffLanding = () => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Fetch maintenance requests using react-query
+  // Fetch maintenance requests using react-query with mock data
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['staff-maintenance-requests'],
     queryFn: async () => {
       try {
+        // Using mock connection
         await connectToDatabase();
         const requests = await MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 }).limit(3);
         
@@ -41,7 +42,10 @@ const StaffLanding = () => {
   // Mutation to resolve maintenance tasks
   const resolveTaskMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Mock implementation
       await connectToDatabase();
+      console.log('Mock: Resolving task with ID:', id);
+      // The actual update will be handled by our mock model
       await MaintenanceRequest.findByIdAndUpdate(id, {
         status: 'resolved',
         resolved_at: new Date(),

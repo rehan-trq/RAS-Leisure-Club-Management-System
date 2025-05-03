@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,7 +33,7 @@ const TransactionHistory = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-  // Fetch payment/transaction history
+  // Fetch payment/transaction history using mocked data
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
@@ -41,7 +42,7 @@ const TransactionHistory = () => {
       try {
         await connectToDatabase();
         
-        const payments = await Payment.find({ user_id: user.id }).sort({ payment_date: -1 });
+        const payments = await Payment.find({ user_id: user.id }).sort();
         
         // Transform to Transaction interface
         const formattedTransactions: Transaction[] = payments.map(payment => ({
