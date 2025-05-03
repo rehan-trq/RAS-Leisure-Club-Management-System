@@ -21,7 +21,8 @@ const StaffLanding = () => {
       try {
         // Using mock connection
         await connectToDatabase();
-        const requests = await MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 }).limit(3);
+        const requestsObj = MaintenanceRequest.find({ status: 'pending' }).sort({ created_at: -1 });
+        const requests = requestsObj.limit(3);
         
         return requests.map(request => ({
           id: request._id.toString(),

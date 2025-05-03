@@ -50,7 +50,7 @@ const serviceSchema = {
 // Create a mock Service model
 const Service = {
   // Find method returns all mock data
-  find: async function() {
+  find: function() {
     console.log('Mock: Finding services');
     // Return the data and allow sort to be chained
     return {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -46,7 +47,8 @@ const MaintenanceManagement = () => {
       try {
         await connectToDatabase();
 
-        const maintenanceData = await MaintenanceRequest.find().sort({ created_at: -1 });
+        const maintenanceObj = MaintenanceRequest.find().sort({ created_at: -1 });
+        const maintenanceData = await maintenanceObj.exec();
 
         // Mock user names since we don't have real User model
         const userMap = new Map();
@@ -65,7 +67,7 @@ const MaintenanceManagement = () => {
           reportedByName: userMap.get(req.reported_by.toString()) || 'Unknown User',
           assigned_to: req.assigned_to ? req.assigned_to.toString() : null,
           assignedToName: req.assigned_to ? userMap.get(req.assigned_to.toString()) || 'Unassigned' : 'Unassigned',
-          resolved_at: req.resolved_at ? req.resolved_at.toISOString() : undefined,
+          resolved_at: req.resolved_at ? req.resolved_at.toISOString() : null,
           created_at: req.created_at.toISOString(),
           updated_at: req.updated_at.toISOString()
         }));

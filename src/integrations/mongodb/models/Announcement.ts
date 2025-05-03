@@ -43,7 +43,7 @@ const announcementSchema = {
 // Create a mock Announcement model
 const Announcement = {
   // Find method returns all mock data
-  find: async function() {
+  find: function() {
     console.log('Mock: Finding announcements');
     // Return the data and allow sort to be chained
     return {

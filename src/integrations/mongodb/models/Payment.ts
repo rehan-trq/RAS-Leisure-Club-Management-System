@@ -43,7 +43,7 @@ const paymentSchema = {
 // Create a mock Payment model
 const Payment = {
   // Find method returns all mock data
-  find: async function(query = {}) {
+  find: function(query: { user_id?: string } = {}) {
     console.log('Mock: Finding payments with query:', query);
     
     // Filter by user_id if provided

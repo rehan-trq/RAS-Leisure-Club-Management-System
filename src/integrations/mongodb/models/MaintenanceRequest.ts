@@ -52,7 +52,7 @@ const maintenanceRequestSchema = {
 // Create a mock MaintenanceRequest model
 const MaintenanceRequest = {
   // Find method returns all mock data
-  find: async function(query = {}) {
+  find: function(query: { status?: string } = {}) {
     console.log('Mock: Finding maintenance requests with query:', query);
     
     // Filter the mock data based on the query

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -46,7 +45,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // Using mock connection
         await connectToDatabase();
-        const services = await Service.find().sort('name');
+        const services = Service.find().sort();
         return services.map(service => ({
           id: service._id.toString(),
           name: service.name,
@@ -114,8 +113,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const maintenance = await MaintenanceRequest.find().sort({ created_at: -1 });
-        return maintenance.map(request => ({
+        const maintenance = MaintenanceRequest.find().sort({ created_at: -1 }).exec();
+        return (await maintenance).map(request => ({
           id: request._id.toString(),
           facility: request.facility,
           issue: request.issue,
@@ -171,8 +170,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const announcements = await Announcement.find().sort({ created_at: -1 });
-        return announcements.map(announcement => ({
+        const anncs = Announcement.find().sort();
+        return anncs.map(announcement => ({
           id: announcement._id.toString(),
           title: announcement.title,
           content: announcement.content,

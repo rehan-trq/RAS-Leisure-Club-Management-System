@@ -37,10 +37,8 @@ const mongoose = {
     };
   },
   models: {},
-  Schema: {
-    Types: {
-      ObjectId: String
-    }
+  Types: {
+    ObjectId: String
   }
 };
 

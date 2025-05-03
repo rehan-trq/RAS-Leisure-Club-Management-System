@@ -42,7 +42,8 @@ const TransactionHistory = () => {
       try {
         await connectToDatabase();
         
-        const payments = await Payment.find({ user_id: user.id }).sort();
+        const paymentsObj = Payment.find({ user_id: user.id });
+        const payments = paymentsObj.sort();
         
         // Transform to Transaction interface
         const formattedTransactions: Transaction[] = payments.map(payment => ({
