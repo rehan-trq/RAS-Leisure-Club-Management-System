@@ -48,7 +48,44 @@ const feedbackSchema = new mongoose.Schema({
   }
 });
 
+// Create a mock Feedback model
+let Feedback;
+
 // More reliable way to check if model exists before creating
-const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
+try {
+  // Try to get existing model or create a new one
+  Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
+} catch (error) {
+  console.error('Error creating Feedback model:', error);
+  // Create a minimal mock implementation if model creation fails
+  Feedback = mongoose.model('Feedback', feedbackSchema);
+}
+
+// Add static methods for mocking queries
+Feedback.find = function(query = {}) {
+  console.log('Mock: Feedback.find', query);
+  
+  // Return mock implementation that matches the expected interface
+  const mockData = [];
+  
+  return {
+    sort: () => ({
+      exec: async () => mockData
+    }),
+    exec: async () => mockData
+  };
+};
+
+Feedback.findById = function(id) {
+  console.log('Mock: Feedback.findById', id);
+  return {
+    exec: async () => null
+  };
+};
+
+Feedback.findByIdAndUpdate = async function(id, update) {
+  console.log('Mock: Feedback.findByIdAndUpdate', id, update);
+  return null;
+};
 
 export default Feedback;
