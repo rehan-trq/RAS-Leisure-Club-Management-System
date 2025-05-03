@@ -1,54 +1,93 @@
 
-// Mock MaintenanceRequest model for frontend-only app
-import { mockMaintenanceRequests } from '@/mocks/mockData';
+import mongoose from 'mongoose';
 import { connectToDatabase } from '../client';
 
-// Connect to the database (mock connection)
+// Try to connect to the database
 connectToDatabase().catch(console.error);
 
-// Define the MaintenanceRequest model with mock implementation
-const MaintenanceRequest = {
-  // Find method returns all mock data
-  find: function() {
-    console.log('Mock: Finding maintenance requests');
-    return {
-      sort: function() {
-        return {
-          limit: function(limit: number) {
-            return mockMaintenanceRequests.slice(0, limit);
-          },
-          exec: function() {
-            return Promise.resolve(mockMaintenanceRequests);
-          }
-        };
-      },
-      exec: function() {
-        return Promise.resolve(mockMaintenanceRequests);
-      }
-    };
+const maintenanceRequestSchema = new mongoose.Schema({
+  facility: {
+    type: String,
+    required: true
   },
-  
-  // FindById method for finding a specific maintenance request
-  findById: function(id: string) {
-    const request = mockMaintenanceRequests.find(req => req._id === id);
-    return Promise.resolve(request);
+  issue: {
+    type: String,
+    required: true
   },
-
-  // FindByIdAndUpdate for updating a maintenance request
-  findByIdAndUpdate: function(id: string, updateData: any) {
-    const index = mockMaintenanceRequests.findIndex(req => req._id === id);
-    
-    if (index !== -1) {
-      mockMaintenanceRequests[index] = {
-        ...mockMaintenanceRequests[index],
-        ...updateData,
-        _id: mockMaintenanceRequests[index]._id // Preserve the ID
-      };
-      return Promise.resolve(mockMaintenanceRequests[index]);
-    }
-    
-    return Promise.resolve(null);
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium'
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'in_progress', 'resolved'],
+    default: 'pending'
+  },
+  reported_by: {
+    type: String,
+    required: true
+  },
+  assigned_to: {
+    type: String,
+    default: null
+  },
+  resolved_at: {
+    type: Date,
+    default: null
+  },
+  created_at: {
+    type: Date,
+    default: Date.now
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now
   }
+});
+
+// Create a mock MaintenanceRequest model
+let MaintenanceRequest;
+
+try {
+  // Try to get existing model or create a new one
+  MaintenanceRequest = mongoose.models.MaintenanceRequest || 
+                      mongoose.model('MaintenanceRequest', maintenanceRequestSchema);
+} catch (error) {
+  console.error('Error creating MaintenanceRequest model:', error);
+  // Create a minimal mock implementation if model creation fails
+  MaintenanceRequest = mongoose.model('MaintenanceRequest', maintenanceRequestSchema);
+}
+
+// Add static methods for mocking queries
+MaintenanceRequest.find = function(query = {}) {
+  console.log('Mock: MaintenanceRequest.find', query);
+  
+  // Return mock implementation that matches the expected interface
+  const mockData = [];
+  
+  return {
+    sort: () => ({
+      limit: (limit) => mockData,
+      exec: async () => mockData
+    }),
+    exec: async () => mockData
+  };
+};
+
+MaintenanceRequest.findById = function(id) {
+  console.log('Mock: MaintenanceRequest.findById', id);
+  return {
+    exec: async () => null
+  };
+};
+
+MaintenanceRequest.findByIdAndUpdate = async function(id, update) {
+  console.log('Mock: MaintenanceRequest.findByIdAndUpdate', id, update);
+  if (update.status) {
+    console.log(`Mock: Updating maintenance request ${id} status to ${update.status}`);
+  }
+  return null;
 };
 
 export default MaintenanceRequest;

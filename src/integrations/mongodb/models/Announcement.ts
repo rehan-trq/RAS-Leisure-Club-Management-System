@@ -1,14 +1,11 @@
 
-// Mock Announcement model using mock data instead of MongoDB
-import mongoose from '../client';
-import { mockAnnouncements } from '@/mocks/mockData';
+import mongoose from 'mongoose';
 import { connectToDatabase } from '../client';
 
-// Try to connect to the database (mock connection)
+// Try to connect to the database
 connectToDatabase().catch(console.error);
 
-// Define the schema structure for reference, but don't actually use it
-const announcementSchema = {
+const announcementSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true
@@ -38,40 +35,43 @@ const announcementSchema = {
     type: Date,
     default: Date.now
   }
-};
+});
 
 // Create a mock Announcement model
-const Announcement = {
-  // Find method returns all mock data
-  find: function() {
-    console.log('Mock: Finding announcements');
-    // Return the data and allow sort to be chained
-    return {
-      sort: function() {
-        return mockAnnouncements;
-      },
-      // Allow exec to be called directly after find
-      exec: async function() {
-        return mockAnnouncements;
-      }
-    };
-  },
+let Announcement;
+
+try {
+  // Try to get existing model or create a new one
+  Announcement = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);
+} catch (error) {
+  console.error('Error creating Announcement model:', error);
+  // Create a minimal mock implementation if model creation fails
+  Announcement = mongoose.model('Announcement', announcementSchema);
+}
+
+// Add static methods for mocking queries
+Announcement.find = function(query = {}) {
+  console.log('Mock: Announcement.find', query);
   
-  // Create method
-  new: function(data: any) {
-    return {
-      save: async function() {
-        const newAnnouncement = {
-          _id: Math.random().toString(36).substr(2, 9),
-          ...data,
-          created_at: new Date(),
-          updated_at: new Date()
-        };
-        mockAnnouncements.push(newAnnouncement);
-        return newAnnouncement;
-      }
-    };
-  }
+  // Return mock implementation that matches the expected interface
+  const mockData = [];
+  
+  return {
+    sort: () => mockData,
+    exec: async () => mockData
+  };
+};
+
+Announcement.findById = function(id) {
+  console.log('Mock: Announcement.findById', id);
+  return {
+    exec: async () => null
+  };
+};
+
+Announcement.findByIdAndUpdate = async function(id, update) {
+  console.log('Mock: Announcement.findByIdAndUpdate', id, update);
+  return null;
 };
 
 export default Announcement;

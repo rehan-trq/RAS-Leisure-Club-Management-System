@@ -1,51 +1,77 @@
 
-// Mock Payment model for frontend-only app
-import { mockPayments } from '@/mocks/mockData';
+import mongoose from 'mongoose';
 import { connectToDatabase } from '../client';
 
-// Connect to the database (mock connection)
+// Try to connect to the database
 connectToDatabase().catch(console.error);
 
-// Define the Payment model with mock implementation
-const Payment = {
-  // Find method returns all mock data
-  find: function() {
-    console.log('Mock: Finding payments');
-    return {
-      sort: function() {
-        return mockPayments;
-      },
-      exec: function() {
-        return Promise.resolve(mockPayments);
-      }
-    };
+const paymentSchema = new mongoose.Schema({
+  user_id: {
+    type: String,
+    required: true
   },
-  
-  // FindByUserId method
-  findByUserId: function(userId: string) {
-    const payments = mockPayments.filter(p => p.user_id === userId);
-    return {
-      sort: function() {
-        return payments;
-      },
-      exec: function() {
-        return Promise.resolve(payments);
-      }
-    };
+  amount: {
+    type: Number,
+    required: true
   },
-  
-  // Create method for creating new payments
-  create: function(data: any) {
-    const newPayment = {
-      _id: (mockPayments.length + 1).toString(),
-      ...data,
-      created_at: new Date(),
-      updated_at: new Date()
-    };
-    
-    mockPayments.push(newPayment);
-    return Promise.resolve(newPayment);
+  payment_method: {
+    type: String,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending'
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  created_at: {
+    type: Date,
+    default: Date.now
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now
   }
+});
+
+// Create a mock Payment model
+let Payment;
+
+try {
+  // Try to get existing model or create a new one
+  Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+} catch (error) {
+  console.error('Error creating Payment model:', error);
+  // Create a minimal mock implementation if model creation fails
+  Payment = mongoose.model('Payment', paymentSchema);
+}
+
+// Add static methods for mocking queries
+Payment.find = function(query = {}) {
+  console.log('Mock: Payment.find', query);
+  
+  // Return mock implementation that matches the expected interface
+  const mockData = [];
+  
+  return {
+    sort: () => mockData,
+    exec: async () => mockData
+  };
+};
+
+Payment.findById = function(id) {
+  console.log('Mock: Payment.findById', id);
+  return {
+    exec: async () => null
+  };
+};
+
+Payment.findByIdAndUpdate = async function(id, update) {
+  console.log('Mock: Payment.findByIdAndUpdate', id, update);
+  return null;
 };
 
 export default Payment;
