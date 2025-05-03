@@ -240,7 +240,10 @@ const MaintenanceManagement = () => {
                           <TableCell>{request.issue}</TableCell>
                           <TableCell>{request.priority}</TableCell>
                           <TableCell>
-                            {request.resolved_at || 'N/A'}
+                            {request.resolved_at ? 
+                              (request.resolved_at instanceof Date ? 
+                                request.resolved_at.toLocaleDateString() : 
+                                String(request.resolved_at)) : 'N/A'}
                           </TableCell>
                           <TableCell>{user?.name}</TableCell>
                         </TableRow>

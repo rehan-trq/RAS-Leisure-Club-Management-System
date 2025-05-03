@@ -1,4 +1,3 @@
-
 // Add or update the mock data to include all required models
 
 // Mock Services
@@ -127,7 +126,7 @@ export const mockAnnouncements = [
   }
 ];
 
-// Mock Payments
+// Update mock payments with additional fields
 export const mockPayments = [
   {
     _id: '1',
