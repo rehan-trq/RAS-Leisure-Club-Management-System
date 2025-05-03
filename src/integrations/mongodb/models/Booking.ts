@@ -39,8 +39,7 @@ const bookingSchema = new mongoose.Schema({
   }
 });
 
-// Check if the model exists before creating it to prevent the "Cannot overwrite model" error
-// Also use a more reliable way of checking model existence
+// More reliable way to check if model exists before creating
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
 export default Booking;

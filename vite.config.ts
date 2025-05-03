@@ -11,8 +11,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   define: {
-    // Define empty env variables to prevent 'process is not defined' errors
-    'import.meta.env.VITE_MONGODB_URI': JSON.stringify(process.env.VITE_MONGODB_URI || "")
+    // Define MongoDB URI for use in the client
+    'import.meta.env.VITE_MONGODB_URI': JSON.stringify("mongodb+srv://saadmursaleen75:Q3WAwFmq6dOgwrQN@cluster0.9xjch3a.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
   },
   plugins: [
     react(),

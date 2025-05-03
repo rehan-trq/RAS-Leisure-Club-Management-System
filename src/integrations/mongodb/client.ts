@@ -2,8 +2,8 @@
 import mongoose from 'mongoose';
 import { toast } from 'sonner';
 
-// Use Vite's import.meta.env instead of process.env
-const MONGODB_URI = import.meta.env.VITE_MONGODB_URI || "mongodb+srv://Saad:11223344@se-cluster.xvjqbnk.mongodb.net/?retryWrites=true&w=majority&appName=SE-Cluster";
+// Use the provided MongoDB URI with Vite's import.meta.env
+const MONGODB_URI = import.meta.env.VITE_MONGODB_URI || "mongodb+srv://saadmursaleen75:Q3WAwFmq6dOgwrQN@cluster0.9xjch3a.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Global variable to track connection state
 let isConnected = false;
