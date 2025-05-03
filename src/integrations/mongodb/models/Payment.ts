@@ -37,6 +37,15 @@ const paymentSchema = new mongoose.Schema({
   }
 });
 
+// If we need to add pre hooks to this model, use the same pattern as in User.ts
+// paymentSchema.pre = function(event, callback) {
+//   if (event === 'save') {
+//     const mockNext = () => {};
+//     callback.call(this, mockNext);
+//   }
+//   return paymentSchema;
+// } as any;
+
 // Create a mock Payment model
 let Payment;
 

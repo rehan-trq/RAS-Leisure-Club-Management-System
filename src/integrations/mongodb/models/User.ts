@@ -42,13 +42,15 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Mock password hashing in browser environment
+// Fix for TypeScript error: Mock pre-save hook
+// In our frontend mock, we need to correctly define pre to return userSchema
 userSchema.pre = function(event, callback) {
   if (event === 'save') {
     const mockNext = () => {};
     callback.call(this, mockNext);
   }
-};
+  return userSchema; // Return the schema to match the expected return type
+} as any; // Use 'any' to bypass TypeScript's strict checking for this mock
 
 // Create a mock User model
 let User;
