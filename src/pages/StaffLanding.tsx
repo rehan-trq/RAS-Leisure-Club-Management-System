@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -99,12 +98,12 @@ const StaffLanding = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">8</p>
-              <p className="text-sm text-muted-foreground">Activities scheduled for today</p>
+              <p className="text-2xl font-bold">12</p>
+              <p className="text-sm text-muted-foreground">Active bookings for today</p>
             </CardContent>
             <CardFooter>
-              <Link to="/admin/bookings" className="text-sm text-primary hover:underline">
-                View all bookings
+              <Link to="/admin/bookings" className="w-full">
+                <Button variant="outline" className="w-full">View All Bookings</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -112,40 +111,89 @@ const StaffLanding = () => {
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between">
-                <span>Pending Tasks</span>
-                <ClipboardList className="h-5 w-5 text-primary" />
+                <span>Member Check-ins</span>
+                <Users className="h-5 w-5 text-primary" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{pendingTasks}</p>
-              <p className="text-sm text-muted-foreground">Tasks requiring your attention</p>
+              <p className="text-2xl font-bold">8</p>
+              <p className="text-sm text-muted-foreground">Members checked in today</p>
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" className="text-sm text-primary p-0 h-auto">
-                Manage tasks
-              </Button>
+              <Link to="/staff/member-checkins" className="w-full">
+                <Button variant="outline" className="w-full">Manage Check-ins</Button>
+              </Link>
             </CardFooter>
           </Card>
 
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between">
-                <span>Facility Status</span>
+                <span>Maintenance Tasks</span>
                 <Wrench className="h-5 w-5 text-primary" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5"></div>
-                <span>All facilities operational</span>
-              </div>
+              <p className="text-2xl font-bold">{pendingTasks}</p>
+              <p className="text-sm text-muted-foreground">Pending maintenance requests</p>
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" className="text-sm text-primary p-0 h-auto">
-                View details
-              </Button>
+              <Link to="/staff/facility-maintenance" className="w-full">
+                <Button variant="outline" className="w-full">View Maintenance</Button>
+              </Link>
             </CardFooter>
           </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <Link to="/staff/advanced-dashboard">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChartBar className="h-5 w-5 text-primary" />
+                  Advanced Dashboard
+                </CardTitle>
+                <CardDescription>View detailed analytics and reports</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link to="/staff/schedule-maintenance">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Schedule Maintenance
+                </CardTitle>
+                <CardDescription>Plan and schedule facility maintenance</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link to="/staff/member-checkins">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Member Check-ins
+                </CardTitle>
+                <CardDescription>Manage member attendance and access</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link to="/staff/facility-maintenance">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-primary" />
+                  Facility Maintenance
+                </CardTitle>
+                <CardDescription>Track and manage maintenance requests</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">

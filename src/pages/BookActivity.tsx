@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -9,17 +8,21 @@ import { servicesData } from '@/data/servicesData';
 import BookingCalendar from '@/components/booking/BookingCalendar';
 import TimeSlotPicker from '@/components/booking/TimeSlotPicker';
 import BookingConfirmation from '@/components/booking/BookingConfirmation';
-import { useBooking } from '@/contexts/BookingContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { bookingAPI } from '@/utils/bookingApi';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 const BookActivity = () => {
   const [selectedService, setSelectedService] = useState(servicesData[0]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const { addBooking } = useBooking();
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Reset selected time when date changes
   useEffect(() => {
@@ -43,26 +46,30 @@ const BookActivity = () => {
     setSelectedTime(time);
   };
 
-  const handleBookingConfirm = () => {
-    if (!selectedDate || !selectedTime) return;
+  const handleBookingConfirm = async () => {
+    if (!selectedDate || !selectedTime || !user) return;
 
-    addBooking({
-      userId: 'user1', // In a real app, this would be the current user's ID
-      serviceId: selectedService.id,
-      serviceName: selectedService.title,
-      serviceImage: selectedService.image,
-      date: format(selectedDate, 'yyyy-MM-dd'),
-      time: selectedTime,
-      status: 'confirmed'
-    });
+    setIsLoading(true);
+    try {
+      const result = await bookingAPI.createBooking({
+        activityName: selectedService.title,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        timeSlot: selectedTime,
+        notes: `Booking for ${selectedService.title}`
+      });
 
-    // Reset form
-    setSelectedDate(undefined);
-    setSelectedTime(null);
-    setIsConfirmationOpen(false);
-
-    // Navigate to bookings page or show success message
-    toast.success('Booking confirmed! You can view it in My Bookings.');
+      if (result.success) {
+        toast.success('Booking created successfully!');
+        navigate('/my-bookings');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create booking');
+    } finally {
+      setIsLoading(false);
+      setIsConfirmationOpen(false);
+    }
   };
 
   const canProceed = selectedDate && selectedTime;
@@ -141,11 +148,11 @@ const BookActivity = () => {
                     
                     <div className="pt-4 flex justify-end">
                       <Button 
-                        disabled={!canProceed}
+                        disabled={!canProceed || isLoading}
                         className="px-8"
                         onClick={() => setIsConfirmationOpen(true)}
                       >
-                        Proceed to Booking
+                        {isLoading ? 'Creating Booking...' : 'Proceed to Booking'}
                       </Button>
                     </div>
                   </TabsContent>
@@ -212,6 +219,7 @@ const BookActivity = () => {
         serviceImage={selectedService.image}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
+        isLoading={isLoading}
       />
       
       <Footer />

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Dialog,
@@ -10,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { CalendarCheck, Clock, Info } from 'lucide-react';
+import { CalendarCheck, Clock, Info, Loader2 } from 'lucide-react';
 
 interface BookingConfirmationProps {
   isOpen: boolean;
@@ -20,6 +19,7 @@ interface BookingConfirmationProps {
   serviceImage: string;
   selectedDate: Date | undefined;
   selectedTime: string | null;
+  isLoading: boolean;
 }
 
 const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
@@ -29,7 +29,8 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
   serviceName,
   serviceImage,
   selectedDate,
-  selectedTime
+  selectedTime,
+  isLoading
 }) => {
   if (!selectedDate || !selectedTime) return null;
 
@@ -76,14 +77,28 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
           </div>
         </div>
         
-        <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex justify-end gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={onConfirm} className="px-8">
-            Confirm Booking
+          <Button 
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Confirming...
+              </>
+            ) : (
+              'Confirm Booking'
+            )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

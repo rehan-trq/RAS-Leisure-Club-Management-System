@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -16,21 +15,8 @@ const Services = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const { services, isLoadingServices } = useData();
 
-  // Map MongoDB services to the format expected by ServiceCard
-  const formattedServices = services.map(service => ({
-    id: service.id,
-    title: service.name,
-    description: service.description || '',
-    image: service.image_url || '/placeholder.svg',
-    category: 'fitness', // Default category, should be updated when categories are added to the model
-    price: service.price ? `$${service.price}` : 'Free',
-    duration: `${service.duration} minutes`,
-    capacity: `${service.capacity} people`,
-    popular: false
-  }));
-
   // If no MongoDB services yet, use the static data
-  const displayServices = formattedServices.length > 0 ? formattedServices : servicesData;
+  const displayServices = services.length > 0 ? services : servicesData;
 
   const filteredServices = displayServices.filter(service => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) || 

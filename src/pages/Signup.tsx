@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import AnimatedButton from '@/components/ui/AnimatedButton';
@@ -16,6 +16,7 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,17 +27,16 @@ const Signup = () => {
   // If user is already authenticated, redirect to appropriate dashboard
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect based on user role
       switch (user.role) {
         case 'admin':
-          navigate('/admin');
+          navigate('/admin-landing');
           break;
         case 'staff':
-          navigate('/staff');
+          navigate('/staff-landing');
           break;
         case 'member':
         default:
-          navigate('/member');
+          navigate('/member-landing');
           break;
       }
     }
@@ -46,7 +46,7 @@ const Signup = () => {
     e.preventDefault();
     
     // Basic validation
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !role) {
       toast.error('Please fill out all required fields');
       return;
     }
@@ -64,7 +64,7 @@ const Signup = () => {
     setLoading(true);
     
     try {
-      await signup(email, password, fullName);
+      await signup(fullName, email, password, role);
       // The AuthContext will handle redirection
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -126,6 +126,22 @@ const Signup = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                   />
+                </div>
+
+                <div className="form-control">
+                  <Label htmlFor="role" className="form-label">
+                    Role
+                  </Label>
+                  <Select value={role} onValueChange={setRole} disabled={loading}>
+                    <SelectTrigger className="form-input">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="form-control">

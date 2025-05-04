@@ -47,18 +47,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Using mock connection
         await connectToDatabase();
         
-        // Return mock services
+        // Return mock services with proper mapping
         return mockServices.map(service => ({
           id: service._id.toString(),
-          name: service.name,
+          title: service.name,
           description: service.description,
-          image_url: service.image_url,
-          capacity: service.capacity,
-          duration: service.duration,
-          price: service.price,
-          is_active: service.is_active,
-          created_at: service.created_at.toISOString(),
-          updated_at: service.updated_at.toISOString()
+          image: service.image_url,
+          category: 'fitness', // Default category
+          price: `$${service.price}/session`,
+          duration: `${service.duration} minutes`,
+          capacity: `${service.capacity} people`,
+          schedule: 'Open daily',
+          popular: false
         })) as ServiceType[];
       } catch (error) {
         console.error("Error fetching services:", error);
