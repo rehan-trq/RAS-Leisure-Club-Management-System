@@ -1,382 +1,305 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
+import { mockMaintenanceRequests } from '@/mocks/mockData';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { connectToDatabase } from '@/integrations/mongodb/client';
-import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
-import User from '@/integrations/mongodb/models/User';
 import { useAuth } from '@/contexts/AuthContext';
-import type { MaintenanceRequest as MaintenanceRequestType, MaintenanceStatus, MaintenancePriority } from '@/types/database';
-import { format } from 'date-fns';
-
-interface MaintenanceRequestWithNames extends MaintenanceRequestType {
-  reportedByName?: string;
-  assignedToName?: string;
-}
 
 const MaintenanceManagement = () => {
-  const { isAdmin, isStaff, token } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [requests, setRequests] = useState<MaintenanceRequestWithNames[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequestWithNames | null>(null);
-  const [facility, setFacility] = useState('');
-  const [issue, setIssue] = useState('');
-  const [priority, setPriority] = useState<MaintenancePriority>('low');
-  const [status, setStatus] = useState<MaintenanceStatus>('pending');
-  const [assignedTo, setAssignedTo] = useState<string | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | 'all'>('all');
-  const [priorityFilter, setPriorityFilter] = useState<MaintenancePriority | 'all'>('all');
 
-  // Fetch maintenance requests from database
-  const { data: requestItems = [], isLoading } = useQuery({
+  const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [newRequest, setNewRequest] = useState({
+    facility: '',
+    issue: '',
+    priority: 'medium',
+  });
+  const [editRequest, setEditRequest] = useState({
+    id: '',
+    status: 'pending',
+  });
+
+  // Fetch maintenance requests using react-query
+  const { data: maintenanceRequests = [], isLoading } = useQuery({
     queryKey: ['maintenance-requests'],
     queryFn: async () => {
       try {
         await connectToDatabase();
-
-        const maintenanceData = await MaintenanceRequest.find().sort({ created_at: -1 });
-
-        // Get user names
-        const userIds = [...new Set([...maintenanceData.map(req => req.reported_by), ...maintenanceData.map(req => req.assigned_to).filter(id => id != null)])];
-        const users = await User.find({ _id: { $in: userIds } });
-
-        // Map users to a dictionary for quick lookup
-        const userMap = new Map();
-        users.forEach(user => {
-          userMap.set(user._id.toString(), user.full_name || 'Unknown User');
-        });
-
-        // Format the data to match our interface
-        const formattedRequests: MaintenanceRequestWithNames[] = maintenanceData.map(req => ({
-          id: req._id.toString(),
-          facility: req.facility,
-          issue: req.issue,
-          priority: req.priority,
-          status: req.status,
-          reported_by: req.reported_by.toString(),
-          reportedByName: userMap.get(req.reported_by.toString()) || 'Unknown User',
-          assigned_to: req.assigned_to ? req.assigned_to.toString() : null,
-          assignedToName: req.assigned_to ? userMap.get(req.assigned_to.toString()) || 'Unassigned' : 'Unassigned',
-          resolved_at: req.resolved_at ? req.resolved_at.toISOString() : undefined,
-          created_at: req.created_at.toISOString(),
-          updated_at: req.updated_at.toISOString()
-        }));
-
-        return formattedRequests;
+        return mockMaintenanceRequests;
       } catch (error) {
-        console.error("Error fetching maintenance requests:", error);
-        toast.error("Failed to load maintenance requests");
+        console.error('Error fetching maintenance requests:', error);
         return [];
       }
     },
-    enabled: !!token && (isAdmin || isStaff)
   });
 
-  // Fetch users for assigning requests
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        await connectToDatabase();
-        const usersData = await User.find({ role: { $in: ['staff', 'admin'] } });
-        setUsers(usersData.map(user => ({
-          id: user._id.toString(),
-          name: user.full_name || user.email
-        })));
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast.error("Failed to load users");
-      }
-    };
-
-    if (isAdmin || isStaff) {
-      fetchUsers();
-    }
-  }, [isAdmin, isStaff]);
-
+  // Mutation to create a new maintenance request
   const createMaintenanceRequestMutation = useMutation({
-    mutationFn: async (requestData: Omit<MaintenanceRequestType, 'id' | 'created_at' | 'updated_at' | 'resolved_at'>) => {
-      await connectToDatabase();
-      const newRequest = new MaintenanceRequest({
-        ...requestData,
-        reported_by: requestData.reported_by
-      });
-      await newRequest.save();
+    mutationFn: async (request: any) => {
+      // Mock implementation
+      console.log('Mock: Creating maintenance request', request);
+      return Promise.resolve();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
       toast.success('Maintenance request created successfully');
-      closeDialog();
+      setOpen(false);
+      setNewRequest({ facility: '', issue: '', priority: 'medium' });
     },
     onError: (error) => {
       console.error('Error creating maintenance request:', error);
       toast.error('Failed to create maintenance request');
-    }
+    },
   });
 
+  // Mutation to update a maintenance request
   const updateMaintenanceRequestMutation = useMutation({
-    mutationFn: async ({
-      id,
-      status,
-      assignedTo
-    }: {
-      id: string;
-      status?: MaintenanceStatus;
-      assignedTo?: string | null;
-    }) => {
-      await connectToDatabase();
-
-      const updateData: any = {
-        updated_at: new Date()
-      };
-
-      if (status) {
-        updateData.status = status;
-        if (status === 'resolved') {
-          updateData.resolved_at = new Date();
-        }
-      }
-
-      if (assignedTo !== undefined) {
-        updateData.assigned_to = assignedTo === 'unassigned' ? null : assignedTo;
-      }
-
-      await MaintenanceRequest.findByIdAndUpdate(id, updateData);
+    mutationFn: async (request: any) => {
+      // Mock implementation
+      console.log('Mock: Updating maintenance request', request);
+      return Promise.resolve();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
       toast.success('Maintenance request updated successfully');
-      closeDialog();
+      setEditOpen(false);
+      setEditRequest({ id: '', status: 'pending' });
     },
     onError: (error) => {
       console.error('Error updating maintenance request:', error);
       toast.error('Failed to update maintenance request');
-    }
+    },
   });
 
-  // Filter requests based on search term, status, and priority
-  const filteredRequests = requestItems.filter(request => {
-    const matchesSearchTerm = !searchTerm ||
-      request.facility.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.issue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (request.reportedByName && request.reportedByName.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
-
-    return matchesSearchTerm && matchesStatus && matchesPriority;
-  });
-
-  const openDialog = () => {
-    setIsDialogOpen(true);
-    setSelectedRequest(null);
-    setFacility('');
-    setIssue('');
-    setPriority('low');
-    setStatus('pending');
-    setAssignedTo(null);
+  const handleCreate = async () => {
+    await createMaintenanceRequestMutation.mutateAsync(newRequest);
   };
 
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedRequest(null);
+  const handleUpdate = async () => {
+    await updateMaintenanceRequestMutation.mutateAsync(editRequest);
   };
-
-  const handleCreateRequest = async () => {
-    if (!facility || !issue) {
-      toast.error('Please fill out all fields.');
-      return;
-    }
-
-    try {
-      await createMaintenanceRequestMutation.mutateAsync({
-        facility,
-        issue,
-        priority,
-        status,
-        reported_by: users[0].id // Assuming the first user is the reporter
-      });
-    } catch (error) {
-      console.error("Error creating maintenance request:", error);
-    }
-  };
-
-  const handleUpdateRequest = async () => {
-    if (!selectedRequest) return;
-
-    try {
-      await updateMaintenanceRequestMutation.mutateAsync({
-        id: selectedRequest.id,
-        status: status,
-        assignedTo: assignedTo
-      });
-    } catch (error) {
-      console.error("Error updating maintenance request:", error);
-    }
-  };
-
-  const handleOpenEditDialog = (request: MaintenanceRequestWithNames) => {
-    setSelectedRequest(request);
-    setFacility(request.facility);
-    setIssue(request.issue);
-    setPriority(request.priority);
-    setStatus(request.status);
-    setAssignedTo(request.assigned_to);
-    setIsDialogOpen(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, 'MMM dd, yyyy - hh:mm a');
-  };
-
-  if (!isAdmin && !isStaff) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-center">You don't have permission to access this feature.</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <>
+    <div className="container mx-auto px-4 py-8">
       <Card>
         <CardHeader>
           <CardTitle>Maintenance Management</CardTitle>
-          <CardDescription>Create, assign, and manage maintenance requests</CardDescription>
+          <CardDescription>
+            Manage maintenance requests for club facilities.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Input
-                placeholder="Search requests..."
-                type="search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-4">
-              <div className="w-40">
-                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as MaintenanceStatus | 'all')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-40">
-                <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as MaintenancePriority | 'all')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={openDialog}>Add Request</Button>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-8">
-              <p>Loading maintenance requests...</p>
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No maintenance requests found.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Facility</TableHead>
-                  <TableHead>Issue</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reported By</TableHead>
-                  <TableHead>Assigned To</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{request.facility}</TableCell>
-                    <TableCell>{request.issue}</TableCell>
-                    <TableCell>{request.priority}</TableCell>
-                    <TableCell>{request.status}</TableCell>
-                    <TableCell>{request.reportedByName}</TableCell>
-                    <TableCell>{request.assignedToName}</TableCell>
-                    <TableCell>{formatDate(request.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(request)}>
-                        Edit
-                      </Button>
-                    </TableCell>
+          <Tabs defaultValue="pending" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
+              <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved</TabsTrigger>
+            </TabsList>
+            <TabsContent value="pending">
+              <Table>
+                <TableCaption>
+                  A list of maintenance requests that are currently pending.
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Facility</TableHead>
+                    <TableHead>Issue</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Reported By</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    maintenanceRequests
+                      .filter((request) => request.status === 'pending')
+                      .map((request) => (
+                        <TableRow key={request._id}>
+                          <TableCell>{request.facility}</TableCell>
+                          <TableCell>{request.issue}</TableCell>
+                          <TableCell>{request.priority}</TableCell>
+                          <TableCell>{user?.name}</TableCell>
+                          <TableCell className="text-right">
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setEditRequest({
+                                    id: request._id,
+                                    status: request.status,
+                                  })
+                                }
+                              >
+                                Edit
+                              </Button>
+                            </DialogTrigger>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+            <TabsContent value="in_progress">
+              <Table>
+                <TableCaption>
+                  A list of maintenance requests that are currently in progress.
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Facility</TableHead>
+                    <TableHead>Issue</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Assigned To</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    maintenanceRequests
+                      .filter((request) => request.status === 'in_progress')
+                      .map((request) => (
+                        <TableRow key={request._id}>
+                          <TableCell>{request.facility}</TableCell>
+                          <TableCell>{request.issue}</TableCell>
+                          <TableCell>{request.priority}</TableCell>
+                          <TableCell>{user?.name}</TableCell>
+                          <TableCell className="text-right">
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setEditRequest({
+                                    id: request._id,
+                                    status: request.status,
+                                  })
+                                }
+                              >
+                                Edit
+                              </Button>
+                            </DialogTrigger>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+            <TabsContent value="resolved">
+              <Table>
+                <TableCaption>
+                  A list of maintenance requests that have been resolved.
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Facility</TableHead>
+                    <TableHead>Issue</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Resolved At</TableHead>
+                    <TableHead>Resolved By</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    maintenanceRequests
+                      .filter((request) => request.status === 'resolved')
+                      .map((request) => (
+                        <TableRow key={request._id}>
+                          <TableCell>{request.facility}</TableCell>
+                          <TableCell>{request.issue}</TableCell>
+                          <TableCell>{request.priority}</TableCell>
+                          <TableCell>
+                            {request.resolved_at ? 
+                              (request.resolved_at instanceof Date ? 
+                                request.resolved_at.toLocaleDateString() : 
+                                String(request.resolved_at)) : 'N/A'}
+                          </TableCell>
+                          <TableCell>{user?.name}</TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
+          <div className="flex justify-end">
+            <DialogTrigger asChild>
+              <Button>Add Request</Button>
+            </DialogTrigger>
+          </div>
         </CardContent>
       </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedRequest ? 'Edit Request' : 'Create Request'}</DialogTitle>
+            <DialogTitle>Add Maintenance Request</DialogTitle>
+            <DialogDescription>
+              Add a new maintenance request to the system.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="facility" className="text-right">
-                Facility
-              </Label>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="facility">Facility</Label>
               <Input
                 id="facility"
-                value={facility}
-                onChange={(e) => setFacility(e.target.value)}
-                className="col-span-3"
+                placeholder="Tennis Court"
+                value={newRequest.facility}
+                onChange={(e) =>
+                  setNewRequest({ ...newRequest, facility: e.target.value })
+                }
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="issue" className="text-right">
-                Issue
-              </Label>
-              <Textarea
+            <div className="grid gap-2">
+              <Label htmlFor="issue">Issue</Label>
+              <Input
                 id="issue"
-                value={issue}
-                onChange={(e) => setIssue(e.target.value)}
-                className="col-span-3"
+                placeholder="Net needs replacement"
+                value={newRequest.issue}
+                onChange={(e) =>
+                  setNewRequest({ ...newRequest, issue: e.target.value })
+                }
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="priority" className="text-right">
-                Priority
-              </Label>
-              <Select value={priority} onValueChange={(value) => setPriority(value as MaintenancePriority)}>
-                <SelectTrigger className="col-span-3">
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={newRequest.priority}
+                onValueChange={(value) =>
+                  setNewRequest({ ...newRequest, priority: value })
+                }
+              >
+                <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -386,12 +309,32 @@ const MaintenanceManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Select value={status} onValueChange={(value) => setStatus(value as MaintenanceStatus)}>
-                <SelectTrigger className="col-span-3">
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={handleCreate}>
+              Add Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance Request</DialogTitle>
+            <DialogDescription>
+              Edit the status of the maintenance request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={editRequest.status}
+                onValueChange={(value) =>
+                  setEditRequest({ ...editRequest, status: value })
+                }
+              >
+                <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -401,36 +344,15 @@ const MaintenanceManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="assignedTo" className="text-right">
-                Assign To
-              </Label>
-              <Select value={assignedTo || 'unassigned'} onValueChange={(value) => setAssignedTo(value === 'unassigned' ? null : value)}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select staff" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancel
-            </Button>
-            <Button onClick={selectedRequest ? handleUpdateRequest : handleCreateRequest}>
-              {selectedRequest ? 'Update Request' : 'Create Request'}
+            <Button type="submit" onClick={handleUpdate}>
+              Update Status
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

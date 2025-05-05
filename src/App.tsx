@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,12 @@ import StaffLanding from "@/pages/StaffLanding";
 import AdminLanding from "@/pages/AdminLanding";
 import AdminBookings from "@/pages/AdminBookings";
 import NotFound from "@/pages/NotFound";
+
+// Staff page imports
+import StaffAdvancedDashboard from "@/pages/staff/StaffAdvancedDashboard";
+import ScheduleMaintenance from "@/pages/staff/ScheduleMaintenance";
+import MemberCheckins from "@/pages/staff/MemberCheckins";
+import FacilityMaintenance from "@/pages/staff/FacilityMaintenance";
 
 // New page imports
 import UserManagement from "@/pages/admin/UserManagement";
@@ -65,8 +70,8 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccess />} />
             
             {/* Member routes */}
-            <Route element={<ProtectedRoute allowedRoles={['member', 'staff', 'admin']} />}>
-              <Route path="/member" element={<MemberLanding />} />
+            <Route element={<ProtectedRoute allowedRoles={['member']} />}>
+              <Route path="/member-landing" element={<MemberLanding />} />
               <Route path="/book-activity" element={<BookActivity />} />
               <Route path="/my-bookings" element={<MyBookings />} />
               <Route path="/transactions" element={<TransactionHistory />} />
@@ -74,14 +79,18 @@ const App = () => (
             
             {/* Staff routes */}
             <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
-              <Route path="/staff" element={<StaffLanding />} />
+              <Route path="/staff-landing" element={<StaffLanding />} />
               <Route path="/staff/maintenance" element={<MaintenanceManagement />} />
+              <Route path="/admin/bookings" element={<AdminBookings />} />
+              <Route path="/staff/advanced-dashboard" element={<StaffAdvancedDashboard />} />
+              <Route path="/staff/schedule-maintenance" element={<ScheduleMaintenance />} />
+              <Route path="/staff/member-checkins" element={<MemberCheckins />} />
+              <Route path="/staff/facility-maintenance" element={<FacilityMaintenance />} />
             </Route>
             
             {/* Admin routes */}
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-              <Route path="/admin" element={<AdminLanding />} />
-              <Route path="/admin/bookings" element={<AdminBookings />} />
+              <Route path="/admin-landing" element={<AdminLanding />} />
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/staff" element={<StaffManagement />} />
               <Route path="/admin/maintenance" element={<MaintenanceManagement />} />

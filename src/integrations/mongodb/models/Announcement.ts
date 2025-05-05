@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const announcementSchema = new mongoose.Schema({
   title: {
@@ -16,8 +20,7 @@ const announcementSchema = new mongoose.Schema({
     default: 'all'
   },
   created_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   },
   expires_at: {
@@ -34,6 +37,41 @@ const announcementSchema = new mongoose.Schema({
   }
 });
 
-const Announcement = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);
+// Create a mock Announcement model
+let Announcement;
+
+try {
+  // Try to get existing model or create a new one
+  Announcement = mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);
+} catch (error) {
+  console.error('Error creating Announcement model:', error);
+  // Create a minimal mock implementation if model creation fails
+  Announcement = mongoose.model('Announcement', announcementSchema);
+}
+
+// Add static methods for mocking queries
+Announcement.find = function(query = {}) {
+  console.log('Mock: Announcement.find', query);
+  
+  // Return mock implementation that matches the expected interface
+  const mockData = [];
+  
+  return {
+    sort: () => mockData,
+    exec: async () => mockData
+  };
+};
+
+Announcement.findById = function(id) {
+  console.log('Mock: Announcement.findById', id);
+  return {
+    exec: async () => null
+  };
+};
+
+Announcement.findByIdAndUpdate = async function(id, update) {
+  console.log('Mock: Announcement.findByIdAndUpdate', id, update);
+  return null;
+};
 
 export default Announcement;

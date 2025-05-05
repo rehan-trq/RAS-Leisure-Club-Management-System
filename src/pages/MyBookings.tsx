@@ -1,26 +1,55 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
-import { useBooking, Booking } from '@/contexts/BookingContext';
 import BookingCard from '@/components/booking/BookingCard';
 import { Search, CalendarClock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { bookingAPI } from '@/utils/bookingApi';
+import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
+
+interface Booking {
+  _id: string;
+  activityName: string;
+  date: string;
+  timeSlot: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
+}
 
 const MyBookings = () => {
-  const { bookings } = useBooking();
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   
-  // Mock user ID (in a real app, this would come from auth context)
-  const userId = 'user1';
-  
-  // Filter bookings for the current user
-  const userBookings = bookings.filter(booking => booking.userId === userId);
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const result = await bookingAPI.getMyBookings();
+        if (result.success) {
+          setBookings(result.data);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch bookings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
   
   // Filter bookings based on search query
-  const filteredBookings = userBookings.filter(booking => 
-    booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredBookings = bookings.filter(booking => 
+    booking.activityName.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   // Group bookings by status
@@ -31,11 +60,30 @@ const MyBookings = () => {
   // Sort bookings by date (newest first)
   const sortBookings = (bookings: Booking[]) => {
     return [...bookings].sort((a, b) => {
-      const dateA = new Date(`${a.date}T${a.time}`);
-      const dateB = new Date(`${b.date}T${b.time}`);
+      const dateA = new Date(`${a.date}T${a.timeSlot}`);
+      const dateB = new Date(`${b.date}T${b.timeSlot}`);
       return dateB.getTime() - dateA.getTime();
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading your bookings...</p>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -84,7 +132,7 @@ const MyBookings = () => {
                 {filteredBookings.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortBookings(filteredBookings).map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
+                      <BookingCard key={booking._id} booking={booking} />
                     ))}
                   </div>
                 ) : (
@@ -102,7 +150,7 @@ const MyBookings = () => {
                 {confirmed.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortBookings(confirmed).map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
+                      <BookingCard key={booking._id} booking={booking} />
                     ))}
                   </div>
                 ) : (
@@ -120,7 +168,7 @@ const MyBookings = () => {
                 {canceled.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortBookings(canceled).map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
+                      <BookingCard key={booking._id} booking={booking} />
                     ))}
                   </div>
                 ) : (
@@ -138,7 +186,7 @@ const MyBookings = () => {
                 {rescheduled.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortBookings(rescheduled).map((booking) => (
-                      <BookingCard key={booking.id} booking={booking} />
+                      <BookingCard key={booking._id} booking={booking} />
                     ))}
                   </div>
                 ) : (

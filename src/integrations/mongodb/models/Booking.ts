@@ -1,5 +1,9 @@
 
 import mongoose from 'mongoose';
+import { connectToDatabase } from '../client';
+
+// Try to connect to the database
+connectToDatabase().catch(console.error);
 
 const bookingSchema = new mongoose.Schema({
   user_id: {
@@ -39,6 +43,7 @@ const bookingSchema = new mongoose.Schema({
   }
 });
 
+// More reliable way to check if model exists before creating
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
 export default Booking;

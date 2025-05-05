@@ -1,4 +1,3 @@
-
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/database';
@@ -26,12 +25,15 @@ const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
 
   if (!hasRequiredRole) {
     // Redirect based on user role if they don't have access
-    if (user?.role === 'admin') {
-      return <Navigate to="/admin" replace />;
-    } else if (user?.role === 'staff') {
-      return <Navigate to="/staff" replace />;
-    } else {
-      return <Navigate to="/member" replace />;
+    switch (user?.role) {
+      case 'admin':
+        return <Navigate to="/admin-landing" replace />;
+      case 'staff':
+        return <Navigate to="/staff-landing" replace />;
+      case 'member':
+        return <Navigate to="/member-landing" replace />;
+      default:
+        return <Navigate to="/" replace />;
     }
   }
 

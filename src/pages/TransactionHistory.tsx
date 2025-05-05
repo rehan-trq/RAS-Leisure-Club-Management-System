@@ -1,17 +1,19 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import Payment from '@/integrations/mongodb/models/Payment';
+import { mockPayments } from '@/mocks/mockData';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wallet, Download, Search, FileText } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { connectToDatabase } from '@/integrations/mongodb/client';
-import Payment from '@/integrations/mongodb/models/Payment';
+import { Download, FileText, Search, Wallet } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -32,7 +34,7 @@ const TransactionHistory = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-  // Fetch payment/transaction history
+  // Fetch payment/transaction history using mocked data
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['transactions', user?.id],
     queryFn: async () => {
@@ -41,16 +43,16 @@ const TransactionHistory = () => {
       try {
         await connectToDatabase();
         
-        const payments = await Payment.find({ user_id: user.id }).sort({ payment_date: -1 });
+        const payments = mockPayments.filter(payment => payment.user_id === user.id);
         
         // Transform to Transaction interface
         const formattedTransactions: Transaction[] = payments.map(payment => ({
           id: payment._id.toString(),
-          date: new Date(payment.payment_date).toLocaleDateString(),
-          description: `${payment.plan_name} Membership`,
+          date: new Date(payment.created_at).toLocaleDateString(),
+          description: payment.description,
           amount: payment.amount,
           type: 'payment',
-          status: payment.status,
+          status: payment.status as 'completed' | 'pending' | 'failed',
           method: payment.payment_method || 'Credit Card',
           receipt_url: `/receipts/${payment._id}.pdf` // This would be a real URL in production
         }));

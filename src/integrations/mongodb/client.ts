@@ -1,26 +1,50 @@
 
-import mongoose from 'mongoose';
+// Mock MongoDB client for frontend-only version
 import { toast } from 'sonner';
 
-const MONGODB_URI = "mongodb+srv://Saad:11223344@se-cluster.xvjqbnk.mongodb.net/?retryWrites=true&w=majority&appName=SE-Cluster";
-
-// Global variable to track connection state
+// Mock mongoose connection state
 let isConnected = false;
 
-export const connectToDatabase = async () => {
-  if (isConnected) {
-    console.log('Using existing MongoDB connection');
-    return;
-  }
+// Mock models storage
+const mockModels = {};
 
-  try {
-    const db = await mongoose.connect(MONGODB_URI);
-    isConnected = !!db.connections[0].readyState;
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    toast.error('Failed to connect to database');
-    throw error;
+// Mock connectToDatabase function - returns a successful promise
+export const connectToDatabase = async () => {
+  // Just pretend to connect without actually doing anything
+  console.log('Mock: Connecting to database...');
+  isConnected = true;
+  return { readyState: 1 };
+};
+
+// Create a mock mongoose object with commonly used properties
+const mongoose = {
+  connection: {
+    readyState: 1
+  },
+  Schema: class Schema {
+    constructor(definition) {
+      return definition;
+    }
+  },
+  model: function(name, schema) {
+    // Store model in our mockModels object
+    if (!mockModels[name]) {
+      mockModels[name] = function MockModel(data) {
+        this._id = data._id || Math.random().toString(36).substr(2, 9);
+        Object.assign(this, data);
+        
+        // Mock save method
+        this.save = async function() {
+          console.log(`Mock: Saving ${name} model`);
+          return this;
+        };
+      };
+    }
+    return mockModels[name];
+  },
+  models: mockModels,
+  Types: {
+    ObjectId: String
   }
 };
 

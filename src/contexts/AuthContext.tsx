@@ -1,69 +1,50 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { login as authLogin, signup as authSignup, getCurrentUser, updateUserProfile } from '@/integrations/mongodb/services/authService';
-import type { AuthUser, UserRole } from '@/types/database';
+import { authAPI } from '@/utils/api';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'member' | 'staff' | 'admin';
+}
 
 interface AuthContextType {
-  user: AuthUser | null;
-  token: string | null;
+  user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
   isMember: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, fullName: string) => Promise<void>;
-  logout: () => Promise<void>;
-  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for saved token and authenticate user on page load
-    const initializeAuth = async () => {
-      try {
-        const savedToken = localStorage.getItem('authToken');
-        
-        if (savedToken) {
-          const currentUser = await getCurrentUser(savedToken);
-          
-          if (currentUser) {
-            setUser(currentUser);
-            setToken(savedToken);
-          } else {
-            // Token is invalid or expired
-            localStorage.removeItem('authToken');
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    initializeAuth();
+    // Check for saved user data on page load
+    const savedUser = authAPI.getCurrentUser();
+    if (savedUser) {
+      setUser(savedUser);
+    }
   }, []);
-  
-  const redirectBasedOnRole = (role: UserRole) => {
-    console.log('Redirecting based on role:', role);
+
+  const redirectBasedOnRole = (role: string) => {
     switch(role) {
       case 'admin':
-        navigate('/admin', { replace: true });
+        navigate('/admin-landing', { replace: true });
         break;
       case 'staff':
-        navigate('/staff', { replace: true });
+        navigate('/staff-landing', { replace: true });
         break;
       case 'member':
-        navigate('/member', { replace: true });
+        navigate('/member-landing', { replace: true });
         break;
       default:
         navigate('/', { replace: true });
@@ -72,18 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const { user, token } = await authLogin(email, password);
+      const result = await authAPI.login(email, password);
       
-      setUser(user);
-      setToken(token);
-      
-      // Save token to localStorage
-      localStorage.setItem('authToken', token);
-      
-      toast.success('Successfully logged in!');
-      
-      // Redirect based on user role
-      redirectBasedOnRole(user.role);
+      if (result.success && result.data) {
+        setUser(result.data);
+        toast.success('Successfully logged in!');
+        redirectBasedOnRole(result.data.role);
+      } else {
+        throw new Error(result.error || 'Login failed');
+      }
     } catch (error: any) {
       console.error('Error logging in:', error);
       toast.error(error.message || 'Failed to log in');
@@ -91,54 +69,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, fullName: string) => {
+  const logout = () => {
+    authAPI.logout();
+    setUser(null);
+    navigate('/login', { replace: true });
+    toast.success('Successfully logged out!');
+  };
+
+  const signup = async (name: string, email: string, password: string, role: string) => {
     try {
-      const { user, token } = await authSignup(email, password, fullName);
+      const result = await authAPI.signup(name, email, password, role);
       
-      setUser(user);
-      setToken(token);
-      
-      // Save token to localStorage
-      localStorage.setItem('authToken', token);
-      
-      toast.success('Account created successfully! You are now logged in.');
-      
-      // Redirect to member dashboard for new users
-      redirectBasedOnRole('member');
+      if (result.success && result.data) {
+        setUser(result.data);
+        toast.success('Account created successfully!');
+        redirectBasedOnRole(result.data.role);
+      } else {
+        throw new Error(result.error || 'Signup failed');
+      }
     } catch (error: any) {
       console.error('Error signing up:', error);
-      toast.error(error.message || 'Failed to sign up');
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setUser(null);
-      setToken(null);
-      
-      // Remove token from localStorage
-      localStorage.removeItem('authToken');
-      
-      navigate('/login');
-      toast.success('Successfully logged out');
-    } catch (error: any) {
-      console.error('Error logging out:', error);
-      toast.error(error.message || 'Failed to log out');
-    }
-  };
-
-  const updateProfile = async (data: Partial<AuthUser>) => {
-    try {
-      if (!user?.id || !token) throw new Error('No user logged in');
-
-      const updatedUser = await updateUserProfile(user.id, data);
-      
-      setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-      toast.success('Profile updated successfully');
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || 'Failed to create account');
       throw error;
     }
   };
@@ -152,7 +103,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        token,
         isAuthenticated,
         isAdmin,
         isStaff,
@@ -160,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
-        updateProfile,
       }}
     >
       {children}

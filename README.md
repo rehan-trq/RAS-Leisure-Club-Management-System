@@ -54,12 +54,14 @@ The **RAS Leisure Club Management System** is designed to automate and optimize 
 
 ---
 
+
 ## Installation
 
 ### Prerequisites
-- **Node.js** (v14+ recommended)
-- **npm** or **yarn**
-- **MongoDB** (local or cloud-based, e.g., MongoDB Atlas)
+
+* **Node.js** (v14+ recommended)
+* **npm** or **yarn**
+* **MongoDB** (local or cloud-based, e.g., MongoDB Atlas)
 
 ### Steps
 
@@ -68,18 +70,60 @@ The **RAS Leisure Club Management System** is designed to automate and optimize 
    ```bash
    git clone https://github.com/<your-username>/RAS-Leisure-Club-Management-System.git
    cd RAS-Leisure-Club-Management-System
+   ```
 
-2. ""Install Dependencies
+2. **Install Dependencies:**
+
+   * For the backend:
+
+     ```bash
+     cd server
+     npm install
+     ```
+   * For the frontend:
+
+     ```bash
+     cd ..
+     npm install
+     ```
+
+3. **Run the Project:**
+
+   * Start the backend server:
+
+     ```bash
+     cd server
+     npm run dev
+     ```
+   * In a new terminal, start the frontend:
+
+     ```bash
+     cd RAS-Leisure-Club-Management-System
+     npm run dev
+     ```
+
+---
 
 ## Contributing
 
 1. **Fork the repository.**
 
 2. **Create a new branch:**
+
    ```bash
    git checkout -b feature/some-feature
    # or for a bug fix:
    git checkout -b bugfix/some-bug
-3. Commit your changes with clear messages
-4. Push your branch to your fork
-5. Open a pull request to this repository
+   ```
+
+3. **Commit your changes with clear messages.**
+
+4. **Push your branch to your fork:**
+
+   ```bash
+   git push origin feature/some-feature
+   ```
+
+5. **Open a pull request to this repository.**
+
+---

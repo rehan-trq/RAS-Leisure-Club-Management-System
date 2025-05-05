@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ServiceCard from '@/components/services/ServiceCard';
@@ -8,12 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter } from 'lucide-react';
 import { servicesData } from '@/data/servicesData';
+import { useData } from '@/contexts/DataContext';
+import { toast } from 'sonner';
 
 const Services = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const { services, isLoadingServices } = useData();
 
-  const filteredServices = servicesData.filter(service => {
+  // If no MongoDB services yet, use the static data
+  const displayServices = services.length > 0 ? services : servicesData;
+
+  const filteredServices = displayServices.filter(service => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          service.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'all' || service.category === activeCategory;

@@ -1,8 +1,6 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { useBooking, Booking } from '@/contexts/BookingContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
@@ -25,49 +23,103 @@ import {
   LayoutGrid,
   LayoutList,
   CheckCircle, 
-  XCircle
+  XCircle,
+  Clock,
+  Info
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import BookingCard from '@/components/booking/BookingCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { servicesData } from '@/data/servicesData';
+import { useAuth } from '@/contexts/AuthContext';
+import { bookingAPI } from '@/utils/bookingApi';
+import { toast } from 'sonner';
+
+interface Booking {
+  _id: string;
+  activityName: string;
+  date: string;
+  timeSlot: string;
+  status: string;
+  memberName: string;
+  memberEmail: string;
+  notes?: string;
+  createdAt: string;
+}
 
 const AdminBookings = () => {
-  const { bookings, cancelBooking } = useBooking();
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<string>('');
-  const [serviceFilter, setServiceFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const result = await bookingAPI.getAllBookings();
+        if (result.success) {
+          setBookings(result.data);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch bookings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
 
   // Apply all filters
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
-      booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.userId.toLowerCase().includes(searchQuery.toLowerCase());
+      booking.activityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.memberName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.memberEmail.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesDate = !dateFilter || booking.date === dateFilter;
-    const matchesService = !serviceFilter || booking.serviceId === serviceFilter;
     const matchesStatus = !statusFilter || booking.status === statusFilter;
     
-    return matchesSearch && matchesDate && matchesService && matchesStatus;
+    return matchesSearch && matchesDate && matchesStatus;
   });
 
   // Sort bookings by date (newest first)
   const sortedBookings = [...filteredBookings].sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.time}`);
-    const dateB = new Date(`${b.date}T${b.time}`);
+    const dateA = new Date(`${a.date}T${a.timeSlot}`);
+    const dateB = new Date(`${b.date}T${b.timeSlot}`);
     return dateB.getTime() - dateA.getTime();
   });
 
-  const handleCancelBooking = () => {
+  const handleCancelBooking = async () => {
     if (selectedBooking) {
-      cancelBooking(selectedBooking.id);
-      setShowCancelDialog(false);
-      setSelectedBooking(null);
+      try {
+        const result = await bookingAPI.cancelBooking(selectedBooking._id);
+        if (result.success) {
+          setBookings(prev => 
+            prev.map(booking => 
+              booking._id === selectedBooking._id 
+                ? { ...booking, status: 'canceled' } 
+                : booking
+            )
+          );
+          toast.success('Booking canceled successfully');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to cancel booking');
+      } finally {
+        setShowCancelDialog(false);
+        setSelectedBooking(null);
+      }
     }
   };
 
@@ -98,10 +150,28 @@ const AdminBookings = () => {
 
   const resetFilters = () => {
     setDateFilter('');
-    setServiceFilter('');
     setStatusFilter('');
     setSearchQuery('');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading bookings...</p>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -112,8 +182,8 @@ const AdminBookings = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">Admin Dashboard</h1>
-                <p className="text-muted-foreground">Manage and monitor all bookings across the system.</p>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">Manage Bookings</h1>
+                <p className="text-muted-foreground">View and manage all member bookings.</p>
               </div>
               
               <div className="mt-4 md:mt-0 flex items-center gap-2">
@@ -138,7 +208,7 @@ const AdminBookings = () => {
             
             <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
               <h2 className="text-lg font-medium mb-4">Filters</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                   <Input 
@@ -157,19 +227,6 @@ const AdminBookings = () => {
                     onChange={(e) => setDateFilter(e.target.value)}
                     className="h-10"
                   />
-                </div>
-                
-                <div>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" 
-                    value={serviceFilter}
-                    onChange={(e) => setServiceFilter(e.target.value)}
-                  >
-                    <option value="">All Services</option>
-                    {servicesData.map(service => (
-                      <option key={service.id} value={service.id}>{service.title}</option>
-                    ))}
-                  </select>
                 </div>
                 
                 <div>
@@ -205,8 +262,8 @@ const AdminBookings = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead>User</TableHead>
+                      <TableHead>Activity</TableHead>
+                      <TableHead>Member</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Time</TableHead>
                       <TableHead>Status</TableHead>
@@ -217,11 +274,16 @@ const AdminBookings = () => {
                   <TableBody>
                     {sortedBookings.length > 0 ? (
                       sortedBookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell className="font-medium">{booking.serviceName}</TableCell>
-                          <TableCell>{booking.userId}</TableCell>
+                        <TableRow key={booking._id}>
+                          <TableCell className="font-medium">{booking.activityName}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{booking.memberName}</div>
+                              <div className="text-sm text-muted-foreground">{booking.memberEmail}</div>
+                            </div>
+                          </TableCell>
                           <TableCell>{format(parseISO(booking.date), 'MMM d, yyyy')}</TableCell>
-                          <TableCell>{booking.time}</TableCell>
+                          <TableCell>{booking.timeSlot}</TableCell>
                           <TableCell>{getStatusBadge(booking.status)}</TableCell>
                           <TableCell>{format(parseISO(booking.createdAt), 'MMM d, yyyy')}</TableCell>
                           <TableCell className="text-right">
@@ -279,7 +341,49 @@ const AdminBookings = () => {
                   {sortedBookings.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {sortedBookings.map((booking) => (
-                        <BookingCard key={booking.id} booking={booking} />
+                        <div key={booking._id} className="bg-white rounded-lg shadow-sm border p-4">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="font-medium">{booking.activityName}</h3>
+                              <div className="mt-2">
+                                <div className="font-medium">{booking.memberName}</div>
+                                <div className="text-sm text-muted-foreground">{booking.memberEmail}</div>
+                              </div>
+                            </div>
+                            {getStatusBadge(booking.status)}
+                          </div>
+                          <div className="space-y-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>{format(parseISO(booking.date), 'MMM d, yyyy')}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              <span>{booking.timeSlot}</span>
+                            </div>
+                            {booking.notes && (
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 mt-0.5" />
+                                <span>{booking.notes}</span>
+                              </div>
+                            )}
+                          </div>
+                          {booking.status === 'confirmed' && (
+                            <div className="mt-4 flex justify-end">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowCancelDialog(true);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -299,7 +403,47 @@ const AdminBookings = () => {
                       {sortedBookings
                         .filter(b => b.status === 'confirmed')
                         .map((booking) => (
-                          <BookingCard key={booking.id} booking={booking} />
+                          <div key={booking._id} className="bg-white rounded-lg shadow-sm border p-4">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="font-medium">{booking.activityName}</h3>
+                                <div className="mt-2">
+                                  <div className="font-medium">{booking.memberName}</div>
+                                  <div className="text-sm text-muted-foreground">{booking.memberEmail}</div>
+                                </div>
+                              </div>
+                              {getStatusBadge(booking.status)}
+                            </div>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{format(parseISO(booking.date), 'MMM d, yyyy')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{booking.timeSlot}</span>
+                              </div>
+                              {booking.notes && (
+                                <div className="flex items-start gap-2">
+                                  <Info className="h-4 w-4 mt-0.5" />
+                                  <span>{booking.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowCancelDialog(true);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
                         ))}
                     </div>
                   ) : (
@@ -319,7 +463,34 @@ const AdminBookings = () => {
                       {sortedBookings
                         .filter(b => b.status === 'canceled')
                         .map((booking) => (
-                          <BookingCard key={booking.id} booking={booking} />
+                          <div key={booking._id} className="bg-white rounded-lg shadow-sm border p-4">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="font-medium">{booking.activityName}</h3>
+                                <div className="mt-2">
+                                  <div className="font-medium">{booking.memberName}</div>
+                                  <div className="text-sm text-muted-foreground">{booking.memberEmail}</div>
+                                </div>
+                              </div>
+                              {getStatusBadge(booking.status)}
+                            </div>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{format(parseISO(booking.date), 'MMM d, yyyy')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{booking.timeSlot}</span>
+                              </div>
+                              {booking.notes && (
+                                <div className="flex items-start gap-2">
+                                  <Info className="h-4 w-4 mt-0.5" />
+                                  <span>{booking.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         ))}
                     </div>
                   ) : (
@@ -339,7 +510,34 @@ const AdminBookings = () => {
                       {sortedBookings
                         .filter(b => b.status === 'rescheduled')
                         .map((booking) => (
-                          <BookingCard key={booking.id} booking={booking} />
+                          <div key={booking._id} className="bg-white rounded-lg shadow-sm border p-4">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="font-medium">{booking.activityName}</h3>
+                                <div className="mt-2">
+                                  <div className="font-medium">{booking.memberName}</div>
+                                  <div className="text-sm text-muted-foreground">{booking.memberEmail}</div>
+                                </div>
+                              </div>
+                              {getStatusBadge(booking.status)}
+                            </div>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{format(parseISO(booking.date), 'MMM d, yyyy')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{booking.timeSlot}</span>
+                              </div>
+                              {booking.notes && (
+                                <div className="flex items-start gap-2">
+                                  <Info className="h-4 w-4 mt-0.5" />
+                                  <span>{booking.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         ))}
                     </div>
                   ) : (
@@ -370,17 +568,14 @@ const AdminBookings = () => {
           {selectedBooking && (
             <div className="py-4">
               <div className="flex items-center gap-3">
-                <div className="rounded-md overflow-hidden w-12 h-12">
-                  <img 
-                    src={selectedBooking.serviceImage} 
-                    alt={selectedBooking.serviceName} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
                 <div>
-                  <p className="font-medium">{selectedBooking.serviceName}</p>
+                  <p className="font-medium">{selectedBooking.activityName}</p>
                   <div className="text-sm text-muted-foreground">
-                    {format(parseISO(selectedBooking.date), 'MMM d, yyyy')} at {selectedBooking.time}
+                    {format(parseISO(selectedBooking.date), 'MMM d, yyyy')} at {selectedBooking.timeSlot}
+                  </div>
+                  <div className="mt-2">
+                    <div className="font-medium">{selectedBooking.memberName}</div>
+                    <div className="text-sm text-muted-foreground">{selectedBooking.memberEmail}</div>
                   </div>
                 </div>
               </div>

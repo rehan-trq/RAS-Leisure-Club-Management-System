@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -7,6 +6,7 @@ import Service from '@/integrations/mongodb/models/Service';
 import Booking from '@/integrations/mongodb/models/Booking';
 import MaintenanceRequest from '@/integrations/mongodb/models/MaintenanceRequest';
 import Announcement from '@/integrations/mongodb/models/Announcement';
+import { mockServices, mockMaintenanceRequests, mockAnnouncements } from '@/mocks/mockData';
 import type { Service as ServiceType, Booking as BookingType, MaintenanceRequest as MaintenanceRequestType, Announcement as AnnouncementType } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -39,68 +39,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const queryClient = useQueryClient();
   const { user, token } = useAuth();
 
-  // Services queries
+  // Services queries - using mocked data
   const { data: services = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['services'],
     queryFn: async () => {
       try {
+        // Using mock connection
         await connectToDatabase();
-        const services = await Service.find().sort('name');
-        return services.map(service => ({
+        
+        // Return mock services with proper mapping
+        return mockServices.map(service => ({
           id: service._id.toString(),
-          name: service.name,
+          title: service.name,
           description: service.description,
-          image_url: service.image_url,
-          capacity: service.capacity,
-          duration: service.duration,
-          price: service.price,
-          is_active: service.is_active,
-          created_at: service.created_at.toISOString(),
-          updated_at: service.updated_at.toISOString()
+          image: service.image_url,
+          category: 'fitness', // Default category
+          price: `$${service.price}/session`,
+          duration: `${service.duration} minutes`,
+          capacity: `${service.capacity} people`,
+          schedule: 'Open daily',
+          popular: false
         })) as ServiceType[];
       } catch (error) {
         console.error("Error fetching services:", error);
         return [];
       }
     },
-    enabled: !!user && !!token
+    enabled: true // Always enabled in frontend-only mode
   });
 
-  // Bookings queries
+  // Bookings queries - using mock data
   const { data: bookings = [], isLoading: isLoadingBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      try {
-        await connectToDatabase();
-        const bookings = await Booking.find().sort({ date: -1 });
-        return bookings.map(booking => ({
-          id: booking._id.toString(),
-          user_id: booking.user_id.toString(),
-          service_id: booking.service_id.toString(),
-          date: booking.date,
-          time_slot: booking.time_slot,
-          status: booking.status,
-          notes: booking.notes,
-          created_at: booking.created_at.toISOString(),
-          updated_at: booking.updated_at.toISOString()
-        })) as BookingType[];
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-        return [];
-      }
+      // For frontend-only app, return empty array or mock data
+      console.log('Mock: Fetching bookings');
+      return [];
     },
-    enabled: !!user && !!token
+    enabled: true // Always enabled in frontend-only mode
   });
 
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData: Omit<BookingType, 'id' | 'created_at' | 'updated_at'>) => {
-      await connectToDatabase();
-      const newBooking = new Booking({
-        ...bookingData,
-        user_id: bookingData.user_id,
-        service_id: bookingData.service_id
-      });
-      await newBooking.save();
+      // Mock implementation
+      console.log('Mock: Creating booking', bookingData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -114,11 +96,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateBookingMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: BookingType['status'] }) => {
-      await connectToDatabase();
-      await Booking.findByIdAndUpdate(id, { 
-        status,
-        updated_at: new Date()
-      });
+      // Mock implementation
+      console.log('Mock: Updating booking', { id, status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -130,14 +109,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Maintenance requests queries
+  // Maintenance requests queries - using mock data
   const { data: maintenanceRequests = [], isLoading: isLoadingMaintenance } = useQuery({
     queryKey: ['maintenance'],
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const maintenance = await MaintenanceRequest.find().sort({ created_at: -1 });
-        return maintenance.map(request => ({
+        
+        // Return mock maintenance requests
+        return mockMaintenanceRequests.map(request => ({
           id: request._id.toString(),
           facility: request.facility,
           issue: request.issue,
@@ -154,17 +134,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [];
       }
     },
-    enabled: !!user && !!token
+    enabled: true // Always enabled in frontend-only mode
   });
 
   const createMaintenanceRequestMutation = useMutation({
     mutationFn: async (requestData: Omit<MaintenanceRequestType, 'id' | 'created_at' | 'updated_at' | 'resolved_at'>) => {
-      await connectToDatabase();
-      const newRequest = new MaintenanceRequest({
-        ...requestData,
-        reported_by: requestData.reported_by || user?.id
-      });
-      await newRequest.save();
+      // Mock implementation
+      console.log('Mock: Creating maintenance request', requestData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
@@ -178,12 +154,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateMaintenanceStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: MaintenanceRequestType['status'] }) => {
-      await connectToDatabase();
-      await MaintenanceRequest.findByIdAndUpdate(id, { 
-        status,
-        resolved_at: status === 'resolved' ? new Date() : null,
-        updated_at: new Date()
-      });
+      // Mock implementation
+      console.log('Mock: Updating maintenance status', { id, status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
@@ -195,14 +167,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Announcements queries
+  // Announcements queries - using mock data
   const { data: announcements = [], isLoading: isLoadingAnnouncements } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
       try {
         await connectToDatabase();
-        const announcements = await Announcement.find().sort({ created_at: -1 });
-        return announcements.map(announcement => ({
+        
+        // Return mock announcements
+        return mockAnnouncements.map(announcement => ({
           id: announcement._id.toString(),
           title: announcement.title,
           content: announcement.content,
@@ -217,17 +190,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [];
       }
     },
-    enabled: !!user && !!token
+    enabled: true // Always enabled in frontend-only mode
   });
 
   const createAnnouncementMutation = useMutation({
     mutationFn: async (announcementData: Omit<AnnouncementType, 'id' | 'created_at' | 'updated_at'>) => {
-      await connectToDatabase();
-      const newAnnouncement = new Announcement({
-        ...announcementData,
-        created_by: announcementData.created_by
-      });
-      await newAnnouncement.save();
+      // Mock implementation
+      console.log('Mock: Creating announcement', announcementData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements'] });
